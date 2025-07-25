@@ -1712,15 +1712,20 @@ with se_tstep, dt_remap_factor, dt_tracer_factor set to -1
 <ocean_tight_coupling >.true.</ocean_tight_coupling>
 
 <!-- ================================================================== -->
-<!-- Defaults for clm_inparm                                            -->
+<!-- Defaults for clmu_inparm                                            -->
 <!-- ================================================================== -->
 
 <!-- Urban air conditioning/heating and wasteheat -->
 <urban_hac>ON_WASTEHEAT</urban_hac>
 
+<building_temp_method>1</building_temp_method>
+
 <!-- Urban traffic flux -->
 <urban_traffic>.false.</urban_traffic>
 
+<!-- ================================================================== -->
+<!-- Defaults for clm_inparm                                            -->
+<!-- ================================================================== -->
 <!-- Plant function types (relative to {csmdata}) -->
 <fpftcon>lnd/clm2/pftdata/pft-physiology.clm40.c130424.nc</fpftcon>
 

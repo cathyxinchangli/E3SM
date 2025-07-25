@@ -78,6 +78,7 @@ module elm_instMod
 
   ! instances declared in their own modules
   use UrbanParamsType            , only : urbanparams_vars
+  use UrbanParamsType            , only : IsSimpleBuildTemp, IsProgBuildTemp
   use controlMod                 , only : nlfilename
 
 
@@ -437,7 +438,8 @@ contains
     ! WJS (6-24-14): Without the following write statement, the assertion in
     ! energyflux_vars%init fails with pgi 13.9 on yellowstone. So for now, I'm leaving
     ! this write statement in place as a workaround for this problem.
-    call energyflux_vars%init(bounds_proc, col_es%t_grnd(begc:endc))
+    call energyflux_vars%init(bounds_proc, col_es%t_grnd(begc:endc), &
+         IsSimpleBuildTemp(), IsProgBuildTemp() )
 
     call grc_ef%Init(bounds_proc%begg_all, bounds_proc%endg_all)
     call lun_ef%Init(bounds_proc%begl_all, bounds_proc%endl_all)
