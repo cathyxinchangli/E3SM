@@ -19,9 +19,12 @@ module UrbanParamsType
   save
   private
   !
-  ! !PRIVATE MEMBER FUNCTIONS:
+  ! !PUBLIC MEMBER FUNCTIONS:
+!   public  :: UrbanReadNML      ! Read in the urban namelist items
   public  :: UrbanInput         ! Read in urban input data
   public  :: CheckUrban         ! Check validity of urban points
+  public  :: IsSimpleBuildTemp ! If using the simple building temperature method
+  public  :: IsProgBuildTemp   ! If using the prognostic building temperature method
   !
   ! !PRIVATE TYPE 
   type urbinp_type
@@ -110,6 +113,12 @@ module UrbanParamsType
   !!!$acc declare copyin(urban_hac       )
   !$acc declare copyin(urban_traffic     )
   !-----------------------------------------------------------------------
+
+    ! !PRIVATE MEMBER DATA:
+  logical, private    :: ReadNamelist = .false.     ! If namelist was read yet or not
+  integer, parameter, private :: BUILDING_TEMP_METHOD_SIMPLE = 0       ! Simple method introduced in CLM4.5
+  integer, parameter, private :: BUILDING_TEMP_METHOD_PROG   = 1       ! Prognostic method introduced in CLM5.0
+  integer, private :: building_temp_method = BUILDING_TEMP_METHOD_PROG ! Method to calculate the building temperature
 
   !-----------------------------------------------------------------------
   ! declare the public instance of urban parameters data types
@@ -860,6 +869,63 @@ module UrbanParamsType
     end if
 
   end subroutine CheckUrban
+ 
+  !-----------------------------------------------------------------------
 
+  !-----------------------------------------------------------------------
+  !BOP
+  !
+  ! !IROUTINE: IsSimpleBuildTemp
+  !
+  ! !INTERFACE:
+  !
+  logical function IsSimpleBuildTemp( )
+    !
+    ! !DESCRIPTION:
+    !
+    ! If the simple building temperature method is being used
+    !
+    ! !USES:
+    implicit none
+    !EOP
+    !-----------------------------------------------------------------------
+
+    if ( .not. ReadNamelist )then
+       write(iulog,*)'Testing on building_temp_method before urban namelist was read in'
+       call endrun(msg=errMsg(__FILE__, __LINE__))
+    end if
+    IsSimpleBuildTemp = building_temp_method == BUILDING_TEMP_METHOD_SIMPLE
+
+  end function IsSimpleBuildTemp
+
+  !-----------------------------------------------------------------------
+
+  !-----------------------------------------------------------------------
+  !BOP
+  !
+  ! !IROUTINE: IsProgBuildTemp
+  !
+  ! !INTERFACE:
+  !
+  logical function IsProgBuildTemp( )
+    !
+    ! !DESCRIPTION:
+    !
+    ! If the prognostic building temperature method is being used
+    !
+    ! !USES:
+    implicit none
+    !EOP
+    !-----------------------------------------------------------------------
+
+    if ( .not. ReadNamelist )then
+       write(iulog,*)'Testing on building_temp_method before urban namelist was read in'
+       call endrun(msg=errMsg(__FILE__, __LINE__))
+    end if
+    IsProgBuildTemp = building_temp_method == BUILDING_TEMP_METHOD_PROG
+
+  end function IsProgBuildTemp
+
+  !-----------------------------------------------------------------------
 
 end module UrbanParamsType
