@@ -77,6 +77,9 @@ attributes from the config_cache.xml file (with keys converted to upper-case).
 <!-- Default urban air conditioning/heating and wasteheat -->
 <urban_hac phys="elm" >ON</urban_hac>
 
+<!-- Default building temperature method -->
+<building_temp_method>1</building_temp_method>
+
 <!-- Default urban traffic flux -->
 <urban_traffic>.false.</urban_traffic>
 

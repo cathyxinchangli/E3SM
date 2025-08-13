@@ -20,7 +20,7 @@ module UrbanParamsType
   private
   !
   ! !PUBLIC MEMBER FUNCTIONS:
-!   public  :: UrbanReadNML      ! Read in the urban namelist items
+  public  :: UrbanReadNML      ! Read in the urban namelist items
   public  :: UrbanInput         ! Read in urban input data
   public  :: CheckUrban         ! Check validity of urban points
   public  :: IsSimpleBuildTemp ! If using the simple building temperature method
@@ -875,6 +875,84 @@ module UrbanParamsType
   !-----------------------------------------------------------------------
   !BOP
   !
+  ! !IROUTINE: UrbanReadNML
+  !
+  ! !INTERFACE:
+  !
+  subroutine UrbanReadNML ( NLFilename )
+   !
+   ! !DESCRIPTION:
+   !
+   ! Read in the urban namelist
+   !
+   ! !USES:
+   use shr_mpi_mod   , only : shr_mpi_bcast
+   use abortutils    , only : endrun
+   use spmdMod       , only : masterproc, mpicom
+   use fileutils     , only : getavu, relavu, opnfil
+   use shr_nl_mod    , only : shr_nl_find_group_name
+   use shr_mpi_mod   , only : shr_mpi_bcast
+   implicit none
+   !
+   ! !ARGUMENTS:
+   character(len=*), intent(IN) :: NLFilename ! Namelist filename
+   !
+   ! !LOCAL VARIABLES:
+   integer :: ierr                 ! error code
+   integer :: unitn                ! unit for namelist file
+   character(len=32) :: subname = 'UrbanReadNML'  ! subroutine name
+
+   namelist / elmu_inparm / urban_hac, urban_traffic, building_temp_method
+   !EOP
+   !-----------------------------------------------------------------------
+
+   ! ----------------------------------------------------------------------
+   ! Read namelist from input namelist filename
+   ! ----------------------------------------------------------------------
+
+   if ( masterproc )then
+
+      unitn = getavu()
+      write(iulog,*) 'Read in elmu_inparm  namelist'
+      call opnfil (NLFilename, unitn, 'F')
+      call shr_nl_find_group_name(unitn, 'elmu_inparm', status=ierr)
+      if (ierr == 0) then
+         read(unitn, elmu_inparm, iostat=ierr)
+         if (ierr /= 0) then
+            call endrun(msg="ERROR reading elmu_inparm namelist"//errmsg(__FILE__, __LINE__))
+         end if
+      else
+         call endrun(msg="ERROR finding elmu_inparm namelist"//errmsg(__FILE__, __LINE__))
+      end if
+      call relavu( unitn )
+
+   end if
+
+   ! Broadcast namelist variables read in
+   call shr_mpi_bcast(urban_hac,             mpicom)
+   call shr_mpi_bcast(urban_traffic,         mpicom)
+   call shr_mpi_bcast(building_temp_method,  mpicom)
+
+   !
+   if (urban_traffic) then
+      write(iulog,*)'Urban traffic fluxes are not implemented currently'
+      call endrun(msg=errMsg(__FILE__, __LINE__))
+   end if
+   !
+   if ( masterproc )then
+      write(iulog,*) '   urban air conditioning/heating and wasteheat   = ', urban_hac
+      write(iulog,*) '   urban traffic flux   = ', urban_traffic
+   end if
+
+   ReadNamelist = .true.
+
+ end subroutine UrbanReadNML
+ 
+  !-----------------------------------------------------------------------
+
+  !-----------------------------------------------------------------------
+  !BOP
+  !
   ! !IROUTINE: IsSimpleBuildTemp
   !
   ! !INTERFACE:
@@ -895,6 +973,13 @@ module UrbanParamsType
        call endrun(msg=errMsg(__FILE__, __LINE__))
     end if
     IsSimpleBuildTemp = building_temp_method == BUILDING_TEMP_METHOD_SIMPLE
+
+    ! REMOVE
+    if (IsSimpleBuildTemp) then
+      write(iulog,*) 'IsSimpleBuildTemp activated'
+      call endrun(msg=errMsg(__FILE__, __LINE__))
+    end if
+    ! END REMOVE
 
   end function IsSimpleBuildTemp
 
@@ -923,6 +1008,13 @@ module UrbanParamsType
        call endrun(msg=errMsg(__FILE__, __LINE__))
     end if
     IsProgBuildTemp = building_temp_method == BUILDING_TEMP_METHOD_PROG
+
+    ! REMOVE
+    if (IsProgBuildTemp) then
+      write(iulog,*) 'IsProgBuildTemp activated'
+      call endrun(msg=errMsg(__FILE__, __LINE__))
+    end if
+    ! END REMOVE
 
   end function IsProgBuildTemp
 

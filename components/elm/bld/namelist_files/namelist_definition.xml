@@ -701,15 +701,21 @@ If FALSE, don't write any restart files.
 </entry>
 
 <entry id="urban_hac" type="char*16" category="elm_physics"
-       group="elm_inparm" valid_values="OFF,ON,ON_WASTEHEAT" >
+       group="elmu_inparm" valid_values="OFF,ON,ON_WASTEHEAT" >
 Turn urban air conditioning/heating ON or OFF and add wasteheat:
     OFF          = Air conditioning/heating is OFF in buildings, internal temperature allowed to float freely
     ON           = Air conditioning/heating is ON in buildings, internal temperature constrained
     ON_WASTEHEAT = Air conditioning/heating is ON and waste-heat sent to urban canyon
 </entry>
 
+<entry id="building_temp_method" type="integer" category="elm_physics"
+       group="elmu_inparm" valid_values="0,1" >
+       0 = simpler method (clm4_5)
+       1 = prognostic calculation of interior building temp (clm5_0)
+</entry>
+
 <entry id="urban_traffic" type="logical" category="elm_physics"
-       group="elm_inparm" valid_values="" >
+       group="elmu_inparm" valid_values="" >
 If TRUE, urban traffic flux will be activated (Currently NOT implemented).
 </entry>
 
