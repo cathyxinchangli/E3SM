@@ -974,13 +974,6 @@ module UrbanParamsType
     end if
     IsSimpleBuildTemp = building_temp_method == BUILDING_TEMP_METHOD_SIMPLE
 
-    ! REMOVE
-    if (IsSimpleBuildTemp) then
-      write(iulog,*) 'IsSimpleBuildTemp activated'
-      call endrun(msg=errMsg(__FILE__, __LINE__))
-    end if
-    ! END REMOVE
-
   end function IsSimpleBuildTemp
 
   !-----------------------------------------------------------------------
@@ -1008,13 +1001,6 @@ module UrbanParamsType
        call endrun(msg=errMsg(__FILE__, __LINE__))
     end if
     IsProgBuildTemp = building_temp_method == BUILDING_TEMP_METHOD_PROG
-
-    ! REMOVE
-    if (IsProgBuildTemp) then
-      write(iulog,*) 'IsProgBuildTemp activated'
-      call endrun(msg=errMsg(__FILE__, __LINE__))
-    end if
-    ! END REMOVE
 
   end function IsProgBuildTemp
 
