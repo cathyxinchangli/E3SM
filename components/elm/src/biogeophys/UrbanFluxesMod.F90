@@ -44,6 +44,11 @@ module UrbanFluxesMod
   public :: UrbanFluxes       ! Urban physics - turbulent fluxes
   !-----------------------------------------------------------------------
 
+  ! !PRIVATE FUNCTIONS:
+  private :: wasteheat               ! Figure out the energy flux from urban heating and cooling
+  private :: simple_wasteheatfromac  ! Calculate waste heat from air-conditioning with the simpler method (CLM4.5)
+  private :: calc_simple_internal_building_temp ! Calculate internal building temperature by simpler method (CLM4.5)
+
 contains
 
   !-----------------------------------------------------------------------
@@ -997,29 +1002,33 @@ contains
       end if
 
       ! Gather terms required to determine internal building temperature
+     
+      if ( IsSimpleBuildTemp() ) call calc_simple_internal_building_temp( &
+                  bounds, num_urbanc, filter_urbanc, num_urbanl, filter_urbanl)
+      ! REMOVE
+      ! do fc = 1,num_urbanc
+      !    c = filter_urbanc(fc)
+      !    l = col_pp%landunit(c)
 
-      do fc = 1,num_urbanc
-         c = filter_urbanc(fc)
-         l = col_pp%landunit(c)
+      !    if (ctype(c) == icol_roof) then
+      !       t_roof_innerl(l) = t_soisno(c,nlevurb)
+      !    else if (ctype(c) == icol_sunwall) then
+      !       t_sunwall_innerl(l) = t_soisno(c,nlevurb)
+      !    else if (ctype(c) == icol_shadewall) then
+      !       t_shadewall_innerl(l) = t_soisno(c,nlevurb)
+      !    end if
 
-         if (ctype(c) == icol_roof) then
-            t_roof_innerl(l) = t_soisno(c,nlevurb)
-         else if (ctype(c) == icol_sunwall) then
-            t_sunwall_innerl(l) = t_soisno(c,nlevurb)
-         else if (ctype(c) == icol_shadewall) then
-            t_shadewall_innerl(l) = t_soisno(c,nlevurb)
-         end if
+      ! end do
 
-      end do
+      ! ! Calculate internal building temperature
+      ! do fl = 1, num_urbanl
+      !    l = filter_urbanl(fl)
 
-      ! Calculate internal building temperature
-      do fl = 1, num_urbanl
-         l = filter_urbanl(fl)
-
-         lngth_roof = (ht_roof(l)/canyon_hwr(l))*wtlunit_roof(l)/(1._r8-wtlunit_roof(l))
-         t_building(l) = (ht_roof(l)*(t_shadewall_innerl(l) + t_sunwall_innerl(l)) &
-              +lngth_roof*t_roof_innerl(l))/(2._r8*ht_roof(l)+lngth_roof)
-      end do
+      !    lngth_roof = (ht_roof(l)/canyon_hwr(l))*wtlunit_roof(l)/(1._r8-wtlunit_roof(l))
+      !    t_building(l) = (ht_roof(l)*(t_shadewall_innerl(l) + t_sunwall_innerl(l)) &
+      !         +lngth_roof*t_roof_innerl(l))/(2._r8*ht_roof(l)+lngth_roof)
+      ! end do
+      ! END REMOVE
 
       ! No roots for urban except for pervious road
 
@@ -1211,5 +1220,86 @@ end subroutine wasteheat
    end if
 
 end subroutine simple_wasteheatfromac
+
+  !----------------------------------------------------------------------- 
+  !BOP
+  !
+  ! !IROUTINE: calc_simple_internal_building_temp
+  ! ! SUBROUTINE FROM CLM 5.0 (CESM)
+  !
+  ! !INTERFACE:
+  subroutine calc_simple_internal_building_temp( bounds, num_urbanc, filter_urbanc, &
+                  num_urbanl, filter_urbanl )
+  !----------------------------------------------------------------------- 
+  ! !DESCRIPTION: 
+  !
+  ! Calculate the internal building temperature, based on the simpler method introduced
+  ! in CLM4.5.
+  !
+  ! !USES:
+    use elm_varpar     , only : nlevurb
+    use column_varcon  , only : icol_roof, icol_sunwall, icol_shadewall
+   !  use LandunitType   , only : landunit_type  ! REMOVE
+   !  use ColumnType     , only : column_type    ! REMOVE
+   !  use TemperatureType, only : temperature_type   ! REMOVE
+
+    implicit none
+  ! !ARGUMENTS:
+    type(bounds_type), intent(in) :: bounds           ! bounds
+    integer          , intent(in) :: num_urbanl       ! number of urban landunits in clump
+    integer          , intent(in) :: filter_urbanl(:) ! urban landunit filter
+    integer          , intent(in) :: num_urbanc       ! number of urban columns in clump
+    integer          , intent(in) :: filter_urbanc(:) ! urban column filter
+   !  type(temperature_type), intent(inout)  :: temperature_inst ! temperature variables  ! REMOVE
+  
+  
+  ! !LOCAL VARIABLES:
+    ! Gather terms required to determine internal building temperature
+    integer  :: fl,fc,l,c                                    ! indices
+    real(r8) :: t_sunwall_innerl(bounds%begl:bounds%endl)    ! temp of inner layer of sunwall (K)
+    real(r8) :: t_shadewall_innerl(bounds%begl:bounds%endl)  ! temp of inner layer of shadewall (K)
+    real(r8) :: t_roof_innerl(bounds%begl:bounds%endl)       ! temp of inner layer of roof (K)
+    real(r8) :: lngth_roof                                   ! length of roof (m)
+  !EOP
+  !----------------------------------------------------------------------- 
+
+    associate(&
+   ! t_soisno      =>    temperature_inst%t_soisno_col  , & ! Input:  [real(r8) (:,:)]  soil temperature (K)    ! REMOVE
+     t_soisno      =>    col_es%t_soisno                   , & ! Input:  [real(r8) (:,:) ]  soil temperature (K)     
+     ht_roof       =>    lun_pp%ht_roof                    , & ! Input:  [real(r8) (:)]    height of urban roof (m)
+     canyon_hwr    =>    lun_pp%canyon_hwr                 , & ! Input:  [real(r8) (:)]    ratio of building height to street width 
+     wtlunit_roof  =>    lun_pp%wtlunit_roof               , & ! Input:  [real(r8) (:)]    weight of roof with respect to landunit
+   !   t_building    =>    temperature_inst%t_building_lun  & ! Output: [real(r8) (:)]  internal building temperature (K)    ! REMOVE
+     t_building    =>    lun_es%t_building            & ! Output: [real(r8) (:)   ]  internal building temperature (K)
+    )
+
+    do fc = 1,num_urbanc
+       c = filter_urbanc(fc)
+       l = col_pp%landunit(c)
+
+       if      (col_pp%itype(c) == icol_roof     ) then
+          t_roof_innerl(l)      = t_soisno(c,nlevurb)
+       else if (col_pp%itype(c) == icol_sunwall  ) then
+          t_sunwall_innerl(l)   = t_soisno(c,nlevurb)
+       else if (col_pp%itype(c) == icol_shadewall) then
+          t_shadewall_innerl(l) = t_soisno(c,nlevurb)
+       end if
+
+    end do
+
+    ! Calculate internal building temperature
+    do fl = 1, num_urbanl
+       l = filter_urbanl(fl)
+     
+       lngth_roof = (ht_roof(l)/canyon_hwr(l))*wtlunit_roof(l)/(1._r8-wtlunit_roof(l))
+       t_building(l) = (ht_roof(l)*(t_shadewall_innerl(l) + t_sunwall_innerl(l)) &
+                       +lngth_roof*t_roof_innerl(l))/(2._r8*ht_roof(l)+lngth_roof)
+    end do
+
+  end associate
+
+  end subroutine calc_simple_internal_building_temp
+
+  !----------------------------------------------------------------------- 
 
 end module UrbanFluxesMod
