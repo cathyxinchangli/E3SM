@@ -15,6 +15,7 @@ module UrbanFluxesMod
   use abortutils           , only : endrun
   use UrbanParamsType      , only : urbanparams_type
   use UrbanParamsType      , only : urban_wasteheat_on, urban_hac_on, urban_hac
+  use UrbanParamsType      , only : IsSimpleBuildTemp
   use atm2lndType          , only : atm2lnd_type
   use SoilStateType        , only : soilstate_type
   use FrictionVelocityType , only : frictionvel_type
@@ -525,20 +526,27 @@ contains
                ! unscaled latent heat conductance
                wtuq_roof_unscl(l) = fwet_roof*(1._r8/canyon_resistance(l))
 
-               ! wasteheat from heating/cooling
-               if (trim(urban_hac) == urban_wasteheat_on) then
-                  eflx_wasteheat_roof(l) = ac_wasteheat_factor * eflx_urban_ac(c) + &
-                       ht_wasteheat_factor * eflx_urban_heat(c)
-               else
-                  eflx_wasteheat_roof(l) = 0._r8
-               end if
+               ! waste heat from simple model
+               if ( IsSimpleBuildTemp() ) call simple_wasteheatfromac( &
+               eflx_urban_ac(c), eflx_urban_heat(c), eflx_wasteheat_roof(l), &
+               eflx_heat_from_ac_roof(l) )
 
-               ! If air conditioning on, always replace heat removed with heat into canyon
-               if (trim(urban_hac) == urban_hac_on .or. trim(urban_hac) == urban_wasteheat_on) then
-                  eflx_heat_from_ac_roof(l) = abs(eflx_urban_ac(c))
-               else
-                  eflx_heat_from_ac_roof(l) = 0._r8
-               end if
+               ! REMOVE 
+               ! ! wasteheat from heating/cooling
+               ! if (trim(urban_hac) == urban_wasteheat_on) then
+               !    eflx_wasteheat_roof(l) = ac_wasteheat_factor * eflx_urban_ac(c) + &
+               !         ht_wasteheat_factor * eflx_urban_heat(c)
+               ! else
+               !    eflx_wasteheat_roof(l) = 0._r8
+               ! end if
+
+               ! ! If air conditioning on, always replace heat removed with heat into canyon
+               ! if (trim(urban_hac) == urban_hac_on .or. trim(urban_hac) == urban_wasteheat_on) then
+               !    eflx_heat_from_ac_roof(l) = abs(eflx_urban_ac(c))
+               ! else
+               !    eflx_heat_from_ac_roof(l) = 0._r8
+               ! end if
+               ! END REMOVE
 
             else if (ctype(c) == icol_road_perv) then
 
@@ -599,20 +607,27 @@ contains
                ! unscaled latent heat conductance
                wtuq_sunwall_unscl(l) = 0._r8
 
-               ! wasteheat from heating/cooling
-               if (trim(urban_hac) == urban_wasteheat_on) then
-                  eflx_wasteheat_sunwall(l) = ac_wasteheat_factor * eflx_urban_ac(c) + &
-                       ht_wasteheat_factor * eflx_urban_heat(c)
-               else
-                  eflx_wasteheat_sunwall(l) = 0._r8
-               end if
+               ! waste heat from simple model
+               if ( IsSimpleBuildTemp() ) call simple_wasteheatfromac( &
+               eflx_urban_ac(c), eflx_urban_heat(c), eflx_wasteheat_sunwall(l), &
+               eflx_heat_from_ac_sunwall(l) )
 
-               ! If air conditioning on, always replace heat removed with heat into canyon
-               if (trim(urban_hac) == urban_hac_on .or. trim(urban_hac) == urban_wasteheat_on) then
-                  eflx_heat_from_ac_sunwall(l) = abs(eflx_urban_ac(c))
-               else
-                  eflx_heat_from_ac_sunwall(l) = 0._r8
-               end if
+               ! REMOVE
+               ! ! wasteheat from heating/cooling
+               ! if (trim(urban_hac) == urban_wasteheat_on) then
+               !    eflx_wasteheat_sunwall(l) = ac_wasteheat_factor * eflx_urban_ac(c) + &
+               !         ht_wasteheat_factor * eflx_urban_heat(c)
+               ! else
+               !    eflx_wasteheat_sunwall(l) = 0._r8
+               ! end if
+
+               ! ! If air conditioning on, always replace heat removed with heat into canyon
+               ! if (trim(urban_hac) == urban_hac_on .or. trim(urban_hac) == urban_wasteheat_on) then
+               !    eflx_heat_from_ac_sunwall(l) = abs(eflx_urban_ac(c))
+               ! else
+               !    eflx_heat_from_ac_sunwall(l) = 0._r8
+               ! end if
+               ! END REMOVE
 
             else if (ctype(c) == icol_shadewall) then
 
@@ -628,20 +643,27 @@ contains
                ! unscaled latent heat conductance
                wtuq_shadewall_unscl(l) = 0._r8
 
-               ! wasteheat from heating/cooling
-               if (trim(urban_hac) == urban_wasteheat_on) then
-                  eflx_wasteheat_shadewall(l) = ac_wasteheat_factor * eflx_urban_ac(c) + &
-                       ht_wasteheat_factor * eflx_urban_heat(c)
-               else
-                  eflx_wasteheat_shadewall(l) = 0._r8
-               end if
+               ! waste head from simple model
+               if ( IsSimpleBuildTemp() ) call simple_wasteheatfromac( &
+                  eflx_urban_ac(c),  eflx_urban_heat(c), eflx_wasteheat_shadewall(l), &
+               eflx_heat_from_ac_shadewall(l) )
 
-               ! If air conditioning on, always replace heat removed with heat into canyon
-               if (trim(urban_hac) == urban_hac_on .or. trim(urban_hac) == urban_wasteheat_on) then
-                  eflx_heat_from_ac_shadewall(l) = abs(eflx_urban_ac(c))
-               else
-                  eflx_heat_from_ac_shadewall(l) = 0._r8
-               end if
+               ! REMOVE
+               ! ! wasteheat from heating/cooling
+               ! if (trim(urban_hac) == urban_wasteheat_on) then
+               !    eflx_wasteheat_shadewall(l) = ac_wasteheat_factor * eflx_urban_ac(c) + &
+               !         ht_wasteheat_factor * eflx_urban_heat(c)
+               ! else
+               !    eflx_wasteheat_shadewall(l) = 0._r8
+               ! end if
+
+               ! ! If air conditioning on, always replace heat removed with heat into canyon
+               ! if (trim(urban_hac) == urban_hac_on .or. trim(urban_hac) == urban_wasteheat_on) then
+               !    eflx_heat_from_ac_shadewall(l) = abs(eflx_urban_ac(c))
+               ! else
+               !    eflx_heat_from_ac_shadewall(l) = 0._r8
+               ! end if
+               ! END REMOVE
             else
 #ifndef _OPENACC
                write(iulog,*) 'c, ctype, pi = ', c, ctype(c), pi
@@ -660,23 +682,30 @@ contains
 
          ! Calculate new urban canopy air temperature and specific humidity
 
+         call wasteheat( bounds, fnl_iter, num_urbanl, filterl_copy, eflx_wasteheat_roof, eflx_wasteheat_sunwall, &
+                         eflx_wasteheat_shadewall, eflx_heat_from_ac_roof, eflx_heat_from_ac_sunwall,    &
+                         eflx_heat_from_ac_shadewall, &
+                         eflx_urban_ac, eflx_urban_heat, eflx_wasteheat, eflx_heat_from_ac )
+
          do fl = 1, fnl_iter
             l = filterl_copy(fl)
             g = lun_pp%gridcell(l)
 
-            ! Total waste heat and heat from AC is sum of heat for walls and roofs
-            ! accounting for different surface areas
-            eflx_wasteheat(l) = wtlunit_roof(l)*eflx_wasteheat_roof(l) + &
-                 (1._r8-wtlunit_roof(l))*(canyon_hwr(l)*(eflx_wasteheat_sunwall(l) + &
-                 eflx_wasteheat_shadewall(l)))
+            ! REMOVE
+            ! ! Total waste heat and heat from AC is sum of heat for walls and roofs
+            ! ! accounting for different surface areas
+            ! eflx_wasteheat(l) = wtlunit_roof(l)*eflx_wasteheat_roof(l) + &
+            !      (1._r8-wtlunit_roof(l))*(canyon_hwr(l)*(eflx_wasteheat_sunwall(l) + &
+            !      eflx_wasteheat_shadewall(l)))
 
-            ! Limit wasteheat to ensure that we don't get any unrealistically strong
-            ! positive feedbacks due to AC in a warmer climate
-            eflx_wasteheat(l) = min(eflx_wasteheat(l),wasteheat_limit)
+            ! ! Limit wasteheat to ensure that we don't get any unrealistically strong
+            ! ! positive feedbacks due to AC in a warmer climate
+            ! eflx_wasteheat(l) = min(eflx_wasteheat(l),wasteheat_limit)
 
-            eflx_heat_from_ac(l) = wtlunit_roof(l)*eflx_heat_from_ac_roof(l) + &
-                 (1._r8-wtlunit_roof(l))*(canyon_hwr(l)*(eflx_heat_from_ac_sunwall(l) + &
-                 eflx_heat_from_ac_shadewall(l)))
+            ! eflx_heat_from_ac(l) = wtlunit_roof(l)*eflx_heat_from_ac_roof(l) + &
+            !      (1._r8-wtlunit_roof(l))*(canyon_hwr(l)*(eflx_heat_from_ac_sunwall(l) + &
+            !      eflx_heat_from_ac_shadewall(l)))
+            ! END REMOVE
 
             ! Calculate traffic heat flux
             ! Only comes from impervious road
@@ -1036,5 +1065,151 @@ contains
     end associate
 
   end subroutine UrbanFluxes
+
+    !----------------------------------------------------------------------- 
+  !BOP
+  !
+  ! !IROUTINE: wasteheat
+  ! ! SUBROUTINE FROM CLM 5.0 (CESM)
+  !
+  ! !INTERFACE:
+  subroutine wasteheat( bounds,  fnl_iter, num_urbanl, filter_urbanl, eflx_wasteheat_roof, eflx_wasteheat_sunwall, &
+   eflx_wasteheat_shadewall, eflx_heat_from_ac_roof, eflx_heat_from_ac_sunwall,    &
+   eflx_heat_from_ac_shadewall, &
+   eflx_urban_ac, eflx_urban_heat, eflx_wasteheat, eflx_heat_from_ac)
+   ! !DESCRIPTION:
+   !
+   ! Calculate the wasteheat flux from urban heating or air-conditioning.
+   !
+   ! !USES:
+   use elm_varcon         , only : ht_wasteheat_factor, ac_wasteheat_factor, &
+                                   wasteheat_limit
+   use EnergyFluxType     , only : energyflux_type
+   use UrbanParamsType    , only : IsProgBuildTemp
+   implicit none
+   ! !ARGUMENTS:
+   type(bounds_type), intent(in) :: bounds  ! bounds
+   integer , intent(in) :: fnl_iter         ! iteration num_urbanl
+   integer , intent(in) :: num_urbanl       ! number of urban landunits in clump
+   integer , intent(in) :: filter_urbanl(:) ! urban landunit filter
+   real(r8)            , intent(in)  :: eflx_wasteheat_roof(bounds%begl:bounds%endl)
+   real(r8)            , intent(in)  :: eflx_wasteheat_sunwall(bounds%begl:bounds%endl)
+   real(r8)            , intent(in)  :: eflx_wasteheat_shadewall(bounds%begl:bounds%endl)
+   real(r8)            , intent(in)  :: eflx_heat_from_ac_roof(bounds%begl:bounds%endl)
+   real(r8)            , intent(in)  :: eflx_heat_from_ac_sunwall(bounds%begl:bounds%endl)
+   real(r8)            , intent(in)  :: eflx_heat_from_ac_shadewall(bounds%begl:bounds%endl)
+   ! type(energyflux_type) , intent(inout)  :: energyflux_inst  ! data on landunit energy flux ! REMOVE
+
+   real(r8), intent(inout)  :: eflx_urban_ac(num_urbanl)
+   real(r8), intent(inout)  :: eflx_urban_heat(num_urbanl)
+   real(r8), intent(inout)  :: eflx_wasteheat(num_urbanl)
+   real(r8), intent(inout)  :: eflx_heat_from_ac(num_urbanl)
+
+   ! !LOCAL VARIABLES:
+   integer fl, l, g
+   !EOP
+   !----------------------------------------------------------------------- 
+
+   associate(&
+   ! REMOVE
+   !  lgridcell        => lun%gridcell     , & ! Input:  [integer (:)    ]  gridcell of corresponding landunit                 
+   !  canyon_hwr       => lun%canyon_hwr   , & ! Input:  [real(r8) (:)]    ratio of building height to street width 
+   !  wtlunit_roof     => lun%wtlunit_roof , & ! Input:  [real(r8) (:)]    weight of roof with respect to landunit
+   !  eflx_wasteheat   => energyflux_inst%eflx_wasteheat_lun    , & ! Output:  [real(r8) (:)]  sensible heat flux from urban heating/cooling sources of waste heat (W/m**2)
+   !  eflx_heat_from_ac=> energyflux_inst%eflx_heat_from_ac_lun , & ! Output:  [real(r8) (:)]  sensible heat flux put back into canyon due to removal by AC (W/m**2)
+   !  eflx_urban_ac    => energyflux_inst%eflx_urban_ac_lun     , & ! Input:  [real(r8) (:)]  urban air conditioning flux (W/m**2)              
+   !  eflx_urban_heat  => energyflux_inst%eflx_urban_heat_lun     & ! Input:  [real(r8) (:)]  urban heating flux (W/m**2)                       
+   ! END REMOVE 
+    lgridcell        => lun_pp%gridcell     , & ! Input:  [integer (:)    ]  gridcell of corresponding landunit                 
+    wtlunit_roof     => lun_pp%wtlunit_roof             , & ! Input:  [real(r8) (:)   ]  weight of roof with respect to landunit           
+    canyon_hwr       => lun_pp%canyon_hwr               & ! Input:  [real(r8) (:)   ]  ratio of building height to street width          
+   ! REMOVE
+   !  eflx_wasteheat   => lun_ef%eflx_wasteheat           , & ! Output: [real(r8) (:)   ]  sensible heat flux from urban heating/cooling sources of waste heat (W/m**2)
+   !  eflx_heat_from_ac=> lun_ef%eflx_heat_from_ac        , & ! Output:  [real(r8) (:)]  sensible heat flux put back into canyon due to removal by AC (W/m**2)
+   !  eflx_urban_ac    => col_ef%eflx_urban_ac              , & ! Input:  [real(r8) (:)]  urban air conditioning flux (W/m**2) 
+   !  eflx_urban_heat  => col_ef%eflx_urban_heat              & ! Input:  [real(r8) (:)]  urban heating flux (W/m**2) 
+   ! END REMOVE 
+   )
+   do fl = 1, fnl_iter 
+      l = filter_urbanl(fl)
+      g = lgridcell(l)
+      if      ( IsSimpleBuildTemp() )then
+         ! Total waste heat and heat from AC is sum of heat for walls and roofs
+         ! accounting for different surface areas
+         eflx_wasteheat(l) = wtlunit_roof(l)*eflx_wasteheat_roof(l) + &
+            (1._r8-wtlunit_roof(l))*(canyon_hwr(l)*(eflx_wasteheat_sunwall(l) + &
+            eflx_wasteheat_shadewall(l)))
+
+      else if ( IsProgBuildTemp() )then
+         ! wasteheat from heating/cooling
+         if (trim(urban_hac) == urban_wasteheat_on) then
+            eflx_wasteheat(l) = ac_wasteheat_factor * eflx_urban_ac(l) + &
+                              ht_wasteheat_factor * eflx_urban_heat(l)
+         else
+            eflx_wasteheat(l) = 0._r8
+         end if
+      end if
+
+      ! Limit wasteheat to ensure that we don't get any unrealistically strong 
+      ! positive feedbacks due to AC in a warmer climate
+      eflx_wasteheat(l) = min(eflx_wasteheat(l),wasteheat_limit)
+
+      if      ( IsSimpleBuildTemp() )then
+         eflx_heat_from_ac(l) = wtlunit_roof(l)*eflx_heat_from_ac_roof(l) + &
+         (1._r8-wtlunit_roof(l))*(canyon_hwr(l)*(eflx_heat_from_ac_sunwall(l) + &
+         eflx_heat_from_ac_shadewall(l)))
+
+      else if ( IsProgBuildTemp() )then
+         ! If air conditioning on, always replace heat removed with heat into canyon
+         if (trim(urban_hac) == urban_hac_on .or. trim(urban_hac) == urban_wasteheat_on) then
+            eflx_heat_from_ac(l) = abs(eflx_urban_ac(l))
+         else
+            eflx_heat_from_ac(l) = 0._r8
+         end if
+      end if
+   end do
+end associate
+end subroutine wasteheat
+
+    !----------------------------------------------------------------------- 
+  !BOP
+  !
+  ! !IROUTINE: simple_wasteheatfromac
+  ! ! SUBROUTINE FROM CLM 5.0 (CESM)
+  !
+  ! !INTERFACE:
+  subroutine simple_wasteheatfromac( eflx_urban_ac, eflx_urban_heat, eflx_wasteheat, &
+   eflx_heat_from_ac )
+   !----------------------------------------------------------------------- 
+   ! !DESCRIPTION: 
+   !
+   ! Calculate waste heat from Air conditioning with the simpler method introduced
+   ! in CLM4.5.
+   !
+   ! !USES:
+   use elm_varcon         , only : ht_wasteheat_factor, ac_wasteheat_factor
+   implicit none
+   ! !ARGUMENTS:
+   real(r8), intent(in)  :: eflx_urban_ac
+   real(r8), intent(in)  :: eflx_urban_heat
+   real(r8), intent(out) :: eflx_wasteheat
+   real(r8), intent(out) :: eflx_heat_from_ac
+
+   ! wasteheat from heating/cooling
+   if (trim(urban_hac) == urban_wasteheat_on) then
+      eflx_wasteheat = ac_wasteheat_factor * eflx_urban_ac + &
+      ht_wasteheat_factor * eflx_urban_heat
+   else
+      eflx_wasteheat = 0._r8
+   end if
+
+   ! If air conditioning on, always replace heat removed with heat into canyon
+   if (trim(urban_hac) == urban_hac_on .or. trim(urban_hac) == urban_wasteheat_on) then
+      eflx_heat_from_ac = abs(eflx_urban_ac)
+   else
+      eflx_heat_from_ac = 0._r8
+   end if
+
+end subroutine simple_wasteheatfromac
 
 end module UrbanFluxesMod
