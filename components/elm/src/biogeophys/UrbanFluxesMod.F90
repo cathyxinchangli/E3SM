@@ -697,8 +697,8 @@ contains
             g = lun_pp%gridcell(l)
 
             ! REMOVE
-            ! ! Total waste heat and heat from AC is sum of heat for walls and roofs
-            ! ! accounting for different surface areas
+            ! Total waste heat and heat from AC is sum of heat for walls and roofs
+            ! accounting for different surface areas
             ! eflx_wasteheat(l) = wtlunit_roof(l)*eflx_wasteheat_roof(l) + &
             !      (1._r8-wtlunit_roof(l))*(canyon_hwr(l)*(eflx_wasteheat_sunwall(l) + &
             !      eflx_wasteheat_shadewall(l)))
@@ -1109,10 +1109,10 @@ contains
    real(r8)            , intent(in)  :: eflx_heat_from_ac_shadewall(bounds%begl:bounds%endl)
    ! type(energyflux_type) , intent(inout)  :: energyflux_inst  ! data on landunit energy flux ! REMOVE
 
-   real(r8), intent(inout)  :: eflx_urban_ac(num_urbanl)
-   real(r8), intent(inout)  :: eflx_urban_heat(num_urbanl)
-   real(r8), intent(inout)  :: eflx_wasteheat(num_urbanl)
-   real(r8), intent(inout)  :: eflx_heat_from_ac(num_urbanl)
+   real(r8), intent(inout)  :: eflx_urban_ac(bounds%begl:bounds%endl)
+   real(r8), intent(inout)  :: eflx_urban_heat(bounds%begl:bounds%endl)
+   real(r8), intent(inout)  :: eflx_wasteheat(bounds%begl:bounds%endl)
+   real(r8), intent(inout)  :: eflx_heat_from_ac(bounds%begl:bounds%endl)
 
    ! !LOCAL VARIABLES:
    integer fl, l, g
