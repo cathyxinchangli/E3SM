@@ -42,7 +42,9 @@ module LandunitDataType
     ! temperature variables
     real(r8), pointer :: eflx_traffic      (:)   ! traffic sensible heat flux (W/m**2)
     real(r8), pointer :: eflx_wasteheat    (:)   ! sensible heat flux from domestic heating/cooling sources of waste heat (W/m**2)
+    real(r8), pointer :: eflx_urban_ac     (:)   ! urban air conditioning flux (W/m**2) 
     real(r8), pointer :: eflx_heat_from_ac (:)   ! sensible heat flux to be put back into canyon due to removal by AC (W/m**2)
+    real(r8), pointer :: eflx_urban_heat   (:)   ! urban heating flux (W/m**2)
 
   contains
     procedure, public :: Init    => lun_ef_init
@@ -171,6 +173,8 @@ contains
     allocate( this%eflx_heat_from_ac   (begl:endl))             ; this%eflx_heat_from_ac   (:)   = spval
     allocate( this%eflx_traffic        (begl:endl))             ; this%eflx_traffic        (:)   = spval
     allocate( this%eflx_wasteheat      (begl:endl))             ; this%eflx_wasteheat      (:)   = spval
+    allocate( this%eflx_urban_ac       (begl:endl))             ; this%eflx_urban_ac       (:)   = spval
+    allocate( this%eflx_urban_heat     (begl:endl))             ; this%eflx_urban_heat     (:)   = spval
 
     !-----------------------------------------------------------------------
     ! cold-start initial conditions for lun_ef
@@ -193,6 +197,8 @@ contains
     deallocate(this%eflx_heat_from_ac)
     deallocate(this%eflx_traffic)
     deallocate(this%eflx_wasteheat)
+    deallocate(this%eflx_urban_ac)
+    deallocate(this%eflx_urban_heat)
 
   end subroutine lun_ef_clean
 

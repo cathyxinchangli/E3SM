@@ -264,8 +264,8 @@ contains
          ram1                =>   frictionvel_vars%ram1_patch               , & ! Output: [real(r8) (:)   ]  aerodynamical resistance (s/m)
 
          htvp                =>   col_ef%htvp                  , & ! Input:  [real(r8) (:)   ]  latent heat of evaporation (/sublimation) (J/kg)
-         eflx_urban_ac       =>   col_ef%eflx_urban_ac         , & ! Input:  [real(r8) (:)   ]  urban air conditioning flux (W/m**2)
-         eflx_urban_heat     =>   col_ef%eflx_urban_heat       , & ! Input:  [real(r8) (:)   ]  urban heating flux (W/m**2)
+         eflx_urban_ac_col   =>   col_ef%eflx_urban_ac         , & ! Input:  [real(r8) (:)   ]  urban air conditioning flux (W/m**2)
+         eflx_urban_heat_col =>   col_ef%eflx_urban_heat       , & ! Input:  [real(r8) (:)   ]  urban heating flux (W/m**2)
          dlrad               =>   veg_ef%dlrad               , & ! Output: [real(r8) (:)   ]  downward longwave radiation below the canopy (W/m**2)
          ulrad               =>   veg_ef%ulrad               , & ! Output: [real(r8) (:)   ]  upward longwave radiation above the canopy (W/m**2)
          cgrnds              =>   veg_ef%cgrnds              , & ! Output: [real(r8) (:)   ]  deriv, of soil sensible heat flux wrt soil temp (W/m**2/K)
@@ -279,7 +279,9 @@ contains
          eflx_sh_h2osfc      =>   veg_ef%eflx_sh_h2osfc      , & ! Output: [real(r8) (:)   ]  sensible heat flux from soil (W/m**2) [+ to atm]
          eflx_traffic        =>   lun_ef%eflx_traffic          , & ! Output: [real(r8) (:)   ]  traffic sensible heat flux (W/m**2)
          eflx_wasteheat      =>   lun_ef%eflx_wasteheat        , & ! Output: [real(r8) (:)   ]  sensible heat flux from urban heating/cooling sources of waste heat (W/m**2)
+         eflx_urban_ac       =>   lun_ef%eflx_urban_ac         , & ! Input:  [real(r8) (:)   ]  urban air conditioning flux (W/m**2) 
          eflx_heat_from_ac   =>   lun_ef%eflx_heat_from_ac     , & ! Output: [real(r8) (:)   ]  sensible heat flux put back into canyon due to removal by AC (W/m**2)
+         eflx_urban_heat     =>   lun_ef%eflx_urban_heat       , & ! Input:  [real(r8) (:)   ]  urban heating flux (W/m**2)
          taux                =>   veg_ef%taux                , & ! Output: [real(r8) (:)   ]  wind (shear) stress: e-w (kg/m/s**2)
          tauy                =>   veg_ef%tauy                , & ! Output: [real(r8) (:)   ]  wind (shear) stress: n-s (kg/m/s**2)
 
@@ -533,7 +535,7 @@ contains
 
                ! waste heat from simple model
                if ( IsSimpleBuildTemp() ) call simple_wasteheatfromac( &
-               eflx_urban_ac(c), eflx_urban_heat(c), eflx_wasteheat_roof(l), &
+               eflx_urban_ac_col(c), eflx_urban_heat_col(c), eflx_wasteheat_roof(l), &
                eflx_heat_from_ac_roof(l) )
 
                ! REMOVE 
@@ -614,7 +616,7 @@ contains
 
                ! waste heat from simple model
                if ( IsSimpleBuildTemp() ) call simple_wasteheatfromac( &
-               eflx_urban_ac(c), eflx_urban_heat(c), eflx_wasteheat_sunwall(l), &
+               eflx_urban_ac_col(c), eflx_urban_heat_col(c), eflx_wasteheat_sunwall(l), &
                eflx_heat_from_ac_sunwall(l) )
 
                ! REMOVE
@@ -650,7 +652,7 @@ contains
 
                ! waste head from simple model
                if ( IsSimpleBuildTemp() ) call simple_wasteheatfromac( &
-                  eflx_urban_ac(c),  eflx_urban_heat(c), eflx_wasteheat_shadewall(l), &
+                  eflx_urban_ac_col(c),  eflx_urban_heat_col(c), eflx_wasteheat_shadewall(l), &
                eflx_heat_from_ac_shadewall(l) )
 
                ! REMOVE
@@ -689,8 +691,7 @@ contains
 
          call wasteheat( bounds, fnl_iter, num_urbanl, filterl_copy, eflx_wasteheat_roof, eflx_wasteheat_sunwall, &
                          eflx_wasteheat_shadewall, eflx_heat_from_ac_roof, eflx_heat_from_ac_sunwall,    &
-                         eflx_heat_from_ac_shadewall, &
-                         eflx_urban_ac, eflx_urban_heat, eflx_wasteheat, eflx_heat_from_ac )
+                         eflx_heat_from_ac_shadewall, lun_ef )
 
          do fl = 1, fnl_iter
             l = filterl_copy(fl)
@@ -1084,8 +1085,7 @@ contains
   ! !INTERFACE:
   subroutine wasteheat( bounds,  fnl_iter, num_urbanl, filter_urbanl, eflx_wasteheat_roof, eflx_wasteheat_sunwall, &
    eflx_wasteheat_shadewall, eflx_heat_from_ac_roof, eflx_heat_from_ac_sunwall,    &
-   eflx_heat_from_ac_shadewall, &
-   eflx_urban_ac, eflx_urban_heat, eflx_wasteheat, eflx_heat_from_ac)
+   eflx_heat_from_ac_shadewall, lun_ef)
    ! !DESCRIPTION:
    !
    ! Calculate the wasteheat flux from urban heating or air-conditioning.
@@ -1093,8 +1093,8 @@ contains
    ! !USES:
    use elm_varcon         , only : ht_wasteheat_factor, ac_wasteheat_factor, &
                                    wasteheat_limit
-   use EnergyFluxType     , only : energyflux_type
    use UrbanParamsType    , only : IsProgBuildTemp
+   use LandunitDataType   , only : landunit_energy_flux
    implicit none
    ! !ARGUMENTS:
    type(bounds_type), intent(in) :: bounds  ! bounds
@@ -1107,12 +1107,15 @@ contains
    real(r8)            , intent(in)  :: eflx_heat_from_ac_roof(bounds%begl:bounds%endl)
    real(r8)            , intent(in)  :: eflx_heat_from_ac_sunwall(bounds%begl:bounds%endl)
    real(r8)            , intent(in)  :: eflx_heat_from_ac_shadewall(bounds%begl:bounds%endl)
+   type(landunit_energy_flux), intent(inout) :: lun_ef
    ! type(energyflux_type) , intent(inout)  :: energyflux_inst  ! data on landunit energy flux ! REMOVE
 
-   real(r8), intent(inout)  :: eflx_urban_ac(bounds%begl:bounds%endl)
-   real(r8), intent(inout)  :: eflx_urban_heat(bounds%begl:bounds%endl)
-   real(r8), intent(inout)  :: eflx_wasteheat(bounds%begl:bounds%endl)
-   real(r8), intent(inout)  :: eflx_heat_from_ac(bounds%begl:bounds%endl)
+   ! REMOVE
+   ! real(r8), intent(inout)  :: eflx_urban_ac(bounds%begl:bounds%endl)
+   ! real(r8), intent(inout)  :: eflx_urban_heat(bounds%begl:bounds%endl)
+   ! real(r8), intent(inout)  :: eflx_wasteheat(bounds%begl:bounds%endl)
+   ! real(r8), intent(inout)  :: eflx_heat_from_ac(bounds%begl:bounds%endl)
+   ! END REMOVE
 
    ! !LOCAL VARIABLES:
    integer fl, l, g
@@ -1131,13 +1134,11 @@ contains
    ! END REMOVE 
     lgridcell        => lun_pp%gridcell     , & ! Input:  [integer (:)    ]  gridcell of corresponding landunit                 
     wtlunit_roof     => lun_pp%wtlunit_roof             , & ! Input:  [real(r8) (:)   ]  weight of roof with respect to landunit           
-    canyon_hwr       => lun_pp%canyon_hwr               & ! Input:  [real(r8) (:)   ]  ratio of building height to street width          
-   ! REMOVE
-   !  eflx_wasteheat   => lun_ef%eflx_wasteheat           , & ! Output: [real(r8) (:)   ]  sensible heat flux from urban heating/cooling sources of waste heat (W/m**2)
-   !  eflx_heat_from_ac=> lun_ef%eflx_heat_from_ac        , & ! Output:  [real(r8) (:)]  sensible heat flux put back into canyon due to removal by AC (W/m**2)
-   !  eflx_urban_ac    => col_ef%eflx_urban_ac              , & ! Input:  [real(r8) (:)]  urban air conditioning flux (W/m**2) 
-   !  eflx_urban_heat  => col_ef%eflx_urban_heat              & ! Input:  [real(r8) (:)]  urban heating flux (W/m**2) 
-   ! END REMOVE 
+    canyon_hwr       => lun_pp%canyon_hwr               , & ! Input:  [real(r8) (:)   ]  ratio of building height to street width          
+    eflx_wasteheat   => lun_ef%eflx_wasteheat           , & ! Output: [real(r8) (:)   ]  sensible heat flux from urban heating/cooling sources of waste heat (W/m**2)
+    eflx_heat_from_ac=> lun_ef%eflx_heat_from_ac        , & ! Output:  [real(r8) (:)]  sensible heat flux put back into canyon due to removal by AC (W/m**2)
+    eflx_urban_ac    => lun_ef%eflx_urban_ac              , & ! Input:  [real(r8) (:)]  urban air conditioning flux (W/m**2) 
+    eflx_urban_heat  => lun_ef%eflx_urban_heat              & ! Input:  [real(r8) (:)]  urban heating flux (W/m**2) 
    )
    do fl = 1, fnl_iter 
       l = filter_urbanl(fl)
