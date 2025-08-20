@@ -27,6 +27,11 @@ module LandunitDataType
   type, public :: landunit_energy_state
     ! temperature variables
     real(r8), pointer :: t_building       (:)   ! internal building temperature (K)
+    real(r8), pointer :: t_roof_inner     (:)   ! roof inside surface temperature (K)
+    real(r8), pointer :: t_sunw_inner     (:)   ! sunwall inside surface temperature (K)
+    real(r8), pointer :: t_shdw_inner     (:)   ! shadewall inside surface temperature (K)
+    real(r8), pointer :: t_floor          (:)   ! floor temperature (K)
+
     real(r8), pointer :: taf              (:)   ! urban canopy air temperature (K)
 
   contains
@@ -45,6 +50,7 @@ module LandunitDataType
     real(r8), pointer :: eflx_urban_ac     (:)   ! urban air conditioning flux (W/m**2) 
     real(r8), pointer :: eflx_heat_from_ac (:)   ! sensible heat flux to be put back into canyon due to removal by AC (W/m**2)
     real(r8), pointer :: eflx_urban_heat   (:)   ! urban heating flux (W/m**2)
+    real(r8), pointer :: eflx_building     (:)   ! building heat flux from change in interior building air temperature (W/m**2)
 
   contains
     procedure, public :: Init    => lun_ef_init
@@ -175,6 +181,7 @@ contains
     allocate( this%eflx_wasteheat      (begl:endl))             ; this%eflx_wasteheat      (:)   = spval
     allocate( this%eflx_urban_ac       (begl:endl))             ; this%eflx_urban_ac       (:)   = spval
     allocate( this%eflx_urban_heat     (begl:endl))             ; this%eflx_urban_heat     (:)   = spval
+    allocate( this%eflx_building       (begl:endl))             ; this%eflx_building       (:)   = spval
 
     !-----------------------------------------------------------------------
     ! cold-start initial conditions for lun_ef
@@ -183,6 +190,9 @@ contains
        if (lun_pp%urbpoi(l)) then
           this%eflx_traffic(l)   = spval
           this%eflx_wasteheat(l) = spval
+          this%eflx_urban_ac(l) = spval
+          this%eflx_urban_heat(l) = spval
+          this%eflx_building(l) = spval
        end if
     end do
 
@@ -199,6 +209,7 @@ contains
     deallocate(this%eflx_wasteheat)
     deallocate(this%eflx_urban_ac)
     deallocate(this%eflx_urban_heat)
+    deallocate(this%eflx_building)
 
   end subroutine lun_ef_clean
 

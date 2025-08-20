@@ -1271,7 +1271,7 @@ end subroutine simple_wasteheatfromac
      canyon_hwr    =>    lun_pp%canyon_hwr                 , & ! Input:  [real(r8) (:)]    ratio of building height to street width 
      wtlunit_roof  =>    lun_pp%wtlunit_roof               , & ! Input:  [real(r8) (:)]    weight of roof with respect to landunit
    !   t_building    =>    temperature_inst%t_building_lun  & ! Output: [real(r8) (:)]  internal building temperature (K)    ! REMOVE
-     t_building    =>    lun_es%t_building            & ! Output: [real(r8) (:)   ]  internal building temperature (K)
+     t_building    =>    lun_es%t_building                   & ! Output: [real(r8) (:)   ]  internal building temperature (K)
     )
 
     do fc = 1,num_urbanc

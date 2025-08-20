@@ -179,7 +179,8 @@ contains
     use column_varcon            , only : icol_roof, icol_sunwall, icol_shadewall, icol_road_perv, icol_road_imperv
     use landunit_varcon          , only : istwet, istice, istice_mec, istsoil, istcrop
     use BandDiagonalMod          , only : BandDiagonal
-
+    use UrbanParamsType          , only : IsSimpleBuildTemp, IsProgBuildTemp
+    use UrbBuildTempOleson2015Mod, only : BuildingTemperature
     !
     ! !ARGUMENTS:
     type(bounds_type)      , intent(in)    :: bounds
