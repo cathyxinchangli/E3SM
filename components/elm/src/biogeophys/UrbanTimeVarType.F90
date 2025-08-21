@@ -43,6 +43,12 @@ module UrbanTimeVarType
   character(len=*), parameter, private :: sourcefile = &
        __FILE__
 
+  !-----------------------------------------------------------------------
+  ! declare the public instance of urban parameters data types
+  !-----------------------------------------------------------------------
+  type(urbantv_type)          , public, target :: urbantv_vars    ! urban parameters
+  !$acc declare create(urbantv_vars)
+
 contains
 
   !-----------------------------------------------------------------------

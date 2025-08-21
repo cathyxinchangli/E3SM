@@ -7,6 +7,8 @@ module elm_instMod
   use abortutils                 , only : endrun
   use decompMod                  , only : bounds_type, get_proc_bounds
   use elm_varctl                 , only : use_cn, use_voc, use_c13, use_c14, use_fates, use_betr
+
+
   !-----------------------------------------
   ! Definition of component types
   !-----------------------------------------
@@ -78,6 +80,7 @@ module elm_instMod
 
   ! instances declared in their own modules
   use UrbanParamsType            , only : urbanparams_vars
+  use UrbanTimeVarType           , only : urbantv_vars
   use UrbanParamsType            , only : IsSimpleBuildTemp, IsProgBuildTemp
   use controlMod                 , only : nlfilename
 
@@ -360,6 +363,9 @@ contains
    ! Initialize urban constants
 
     call urbanparams_vars%Init(bounds_proc)
+
+    ! Initialize urban time varying data
+    call urbantv_vars%Init(bounds_proc,NLFilename)
 
     ! Initialize ecophys constants
 

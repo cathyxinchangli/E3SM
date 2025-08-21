@@ -14,8 +14,8 @@ module UrbBuildTempOleson2015Mod
   use elm_varctl        , only : iulog
   use UrbanParamsType   , only : urbanparams_type
   use UrbanTimeVarType  , only : urbantv_type  
-  use EnergyFluxType    , only : energyflux_type
-  use TemperatureType   , only : temperature_type
+  ! use EnergyFluxType    , only : energyflux_type  ! REMOVE
+  ! use TemperatureType   , only : temperature_type ! REMOVE
   use LandunitType      , only : lun_pp                
   use ColumnType        , only : col_pp       
   use LandunitDataType  , only : lun_es, lun_ef    

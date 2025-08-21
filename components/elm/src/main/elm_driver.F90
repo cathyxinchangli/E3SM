@@ -31,6 +31,7 @@ module elm_driver
   use BalanceCheckMod        , only : BeginGridWaterBalance, GridBalanceCheck
   !
   use CanopyTemperatureMod   , only : CanopyTemperature ! (formerly Biogeophysics1Mod)
+  use UrbanTimeVarType       , only : urbantv_type
   use SoilTemperatureMod     , only : SoilTemperature
   use LakeTemperatureMod     , only : LakeTemperature
   !
@@ -133,6 +134,7 @@ module elm_driver
   use tracer_varcon          , only : is_active_betr_bgc
   use CNEcosystemDynBetrMod  , only : CNEcosystemDynBetr, CNFluxStateBetrSummary
   use UrbanParamsType        , only : urbanparams_vars
+  use UrbanTimeVarType       , only : urbantv_vars
 
   use GridcellType           , only : grc_pp
   use GridcellDataType       , only : grc_cs, c13_grc_cs, c14_grc_cs
@@ -659,6 +661,9 @@ contains
        call fanstream_interp(bounds_proc, atm2lnd_vars)
     end if
 
+    ! Get time varying urban data
+    call urbantv_vars%urbantv_interp(bounds_proc)
+
     ! ============================================================================
     ! Initialize variables from previous time step, downscale atm forcings, and
     ! Determine canopy interception and precipitation onto ground surface.
@@ -856,7 +861,7 @@ contains
             filter(nc)%num_urbanl  , filter(nc)%urbanl,       &
             filter(nc)%num_nolakec , filter(nc)%nolakec,      &
             atm2lnd_vars, urbanparams_vars, canopystate_vars, &
-            solarabs_vars, soilstate_vars, energyflux_vars )
+            solarabs_vars, soilstate_vars, energyflux_vars, urbantv_vars )
        call t_stopf('soiltemperature')
 
 
