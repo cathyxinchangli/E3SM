@@ -43,7 +43,7 @@ contains
 !
 ! !INTERFACE:
   subroutine BuildingTemperature (bounds, num_urbanl, filter_urbanl, num_nolakec, &
-                                  filter_nolakec, tk, urbanparams_vars, urbantv_vars)
+                                  filter_nolakec, tk, urbanparams_vars)
 !
 ! !DESCRIPTION:
 ! Solve for t_building, inner surface temperatures of roof, sunw, shdw, and floor temperature
@@ -225,7 +225,7 @@ contains
     type(urbanparams_type), intent(in)    :: urbanparams_vars ! urban parameters
     ! type(temperature_type), intent(inout) :: temperature_inst ! temperature variables   ! REMOVE
     ! type(energyflux_type) , intent(inout) :: energyflux_inst  ! energy flux variables  ! REMOVE
-    type(urbantv_type)    , intent(in)    :: urbantv_vars     ! urban time varying variables
+    ! type(urbantv_type)    , intent(in)    :: urbantv_vars     ! urban time varying variables   ! REMOVE MAYBE
 !
 ! !LOCAL VARIABLES:
     integer, parameter :: neq = 5          ! number of equation/unknowns
@@ -326,7 +326,8 @@ contains
     t_floor           => lun_es%t_floor                    , & ! InOut:  [real(r8) (:)]  floor temperature (K)
     t_building        => lun_es%t_building                 , & ! InOut:  [real(r8) (:)]  internal building air temperature (K)
 
-    t_building_max    => urbantv_vars%t_building_max       , & ! Input:  [real(r8) (:)]  maximum internal building air temperature (K)
+    ! t_building_max    => urbantv_vars%t_building_max       , & ! Input:  [real(r8) (:)]  maximum internal building air temperature (K)  ! REMOVE MAYBE
+    t_building_max    => urbanparams_vars%t_building_max   , & ! Input:  [real(r8) (:)]  maximum internal building air temperature (K)
     t_building_min    => urbanparams_vars%t_building_min   , & ! Input:  [real(r8) (:)]  minimum internal building air temperature (K)
 
     eflx_building     => lun_ef%eflx_building , & ! Output:  [real(r8) (:)]  building heat flux from change in interior building air temperature (W/m**2)

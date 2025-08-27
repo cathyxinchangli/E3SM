@@ -80,7 +80,7 @@ module elm_instMod
 
   ! instances declared in their own modules
   use UrbanParamsType            , only : urbanparams_vars
-  use UrbanTimeVarType           , only : urbantv_vars
+!   use UrbanTimeVarType           , only : urbantv_vars  ! REMOVE MAYBE
   use UrbanParamsType            , only : IsSimpleBuildTemp, IsProgBuildTemp
   use controlMod                 , only : nlfilename
 
@@ -364,8 +364,10 @@ contains
 
     call urbanparams_vars%Init(bounds_proc)
 
+    ! REMOVE MAYBE
     ! Initialize urban time varying data
-    call urbantv_vars%Init(bounds_proc,NLFilename)
+   !  call urbantv_vars%Init(bounds_proc,NLFilename)
+    ! END REMOVE MAYBE
 
     ! Initialize ecophys constants
 
@@ -412,8 +414,10 @@ contains
     ! Initialization of public data types
 
     call grc_es%Init(bounds_proc%begg_all, bounds_proc%endg_all)
-    call lun_es%Init(bounds_proc%begl_all, bounds_proc%endl_all)
-    call col_es%Init(bounds_proc%begc_all, bounds_proc%endc_all)
+    call col_es%Init(bounds_proc%begc_all, bounds_proc%endc_all)   ! col_es should be initialized before lun_es, because col_es is used to initialize lun_es when IsProgBuildTemp() is TRUE
+    call lun_es%Init(bounds_proc%begl_all, bounds_proc%endl_all,col_es,&
+                     IsSimpleBuildTemp(), IsProgBuildTemp())
+
     call veg_es%Init(bounds_proc%begp_all, bounds_proc%endp_all)
 
     call canopystate_vars%init(bounds_proc)
@@ -448,9 +452,10 @@ contains
          IsSimpleBuildTemp(), IsProgBuildTemp() )
 
     call grc_ef%Init(bounds_proc%begg_all, bounds_proc%endg_all)
-    call lun_ef%Init(bounds_proc%begl_all, bounds_proc%endl_all)
-    call col_ef%Init(bounds_proc%begc_all, bounds_proc%endc_all)
-    call veg_ef%Init(bounds_proc%begp_all, bounds_proc%endp_all)
+    call lun_ef%Init(bounds_proc%begl_all, bounds_proc%endl_all, &
+         IsSimpleBuildTemp(), IsProgBuildTemp() )
+    call col_ef%Init(bounds_proc%begc_all, bounds_proc%endc_all, IsSimpleBuildTemp())
+    call veg_ef%Init(bounds_proc%begp_all, bounds_proc%endp_all, IsSimpleBuildTemp())
 
     call drydepvel_vars%Init(bounds_proc)
     call aerosol_vars%Init(bounds_proc)

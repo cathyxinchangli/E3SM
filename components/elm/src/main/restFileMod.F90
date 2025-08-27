@@ -52,7 +52,7 @@ module restFileMod
   use CropType             , only : crop_type
   use GridcellDataType     , only : grc_wf
   use TopounitDataType     , only : top_es, top_ws
-  use LandunitDataType     , only : lun_es, lun_ws
+  use LandunitDataType     , only : lun_es, lun_ef, lun_ws
   use ColumnDataType       , only : col_es, col_ef, col_ws, col_wf
   use ColumnDataType       , only : col_cs, c13_col_cs, c14_col_cs
   use ColumnDataType       , only : col_cf, c13_col_cf, c14_col_cf
@@ -65,6 +65,9 @@ module restFileMod
   use VegetationDataType   , only : veg_ps, veg_pf
   use GridcellDataType     , only : grc_cs, grc_ws 
   
+  use UrbanParamsType      , only : IsSimpleBuildTemp, IsProgBuildTemp
+
+
   !
   ! !PUBLIC TYPES:
   implicit none
@@ -178,7 +181,7 @@ contains
 
     call energyflux_vars%restart (bounds, ncid, flag='define')
 
-    call col_ef%Restart (bounds, ncid, flag='define')
+    call col_ef%Restart (bounds, ncid, flag='define', is_simple_buildtemp = IsSimpleBuildTemp())
 
     call veg_ef%Restart (bounds, ncid, flag='define')
 
@@ -202,7 +205,8 @@ contains
 
     call top_es%Restart (bounds, ncid, flag='define')
     
-    call lun_es%Restart (bounds, ncid, flag='define')
+    call lun_es%Restart (bounds, ncid, flag='define', &
+                      is_simple_buildtemp = IsSimpleBuildTemp(),is_prog_buildtemp = IsProgBuildTemp())
 
     call col_es%Restart (bounds, ncid, flag='define')
 
@@ -315,7 +319,7 @@ contains
 
     call energyflux_vars%restart (bounds, ncid, flag='write')
 
-    call col_ef%Restart (bounds, ncid, flag='write')
+    call col_ef%Restart (bounds, ncid, flag='write',is_simple_buildtemp =  IsSimpleBuildTemp())
 
     call veg_ef%Restart (bounds, ncid, flag='write')
 
@@ -339,7 +343,8 @@ contains
 
     call top_es%Restart (bounds, ncid, flag='write')
 
-    call lun_es%Restart (bounds, ncid, flag='write')
+    call lun_es%Restart (bounds, ncid, flag='write', &
+                      is_simple_buildtemp = IsSimpleBuildTemp(),is_prog_buildtemp = IsProgBuildTemp())
 
     call col_es%Restart (bounds, ncid, flag='write')
 
@@ -542,7 +547,10 @@ contains
 
     call energyflux_vars%restart (bounds, ncid, flag='read')
 
-    call col_ef%Restart (bounds, ncid, flag='read')
+    call lun_ef%Restart (bounds, ncid, flag='read', is_simple_buildtemp =  IsSimpleBuildTemp(), &
+                                                    is_prog_buildtemp = IsProgBuildTemp())
+
+    call col_ef%Restart (bounds, ncid, flag='read', is_simple_buildtemp =  IsSimpleBuildTemp())
 
     call veg_ef%Restart (bounds, ncid, flag='read')
 
@@ -566,7 +574,8 @@ contains
 
     call top_es%Restart (bounds, ncid, flag='read')
 
-    call lun_es%Restart (bounds, ncid, flag='read')
+    call lun_es%Restart (bounds, ncid, flag='read', &
+                      is_simple_buildtemp = IsSimpleBuildTemp(),is_prog_buildtemp = IsProgBuildTemp())
 
     call col_es%Restart (bounds, ncid, flag='read')
 

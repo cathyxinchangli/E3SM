@@ -5069,11 +5069,12 @@ module VegetationDataType
   !------------------------------------------------------------------------
   ! Subroutines to initialize and clean vegetation energy flux data structure
   !------------------------------------------------------------------------
-  subroutine veg_ef_init(this, begp, endp)
+  subroutine veg_ef_init(this, begp, endp, is_simple_buildtemp)
     !
     ! !ARGUMENTS:
     class(vegetation_energy_flux) :: this
     integer, intent(in) :: begp,endp
+    logical, intent(in) :: is_simple_buildtemp
     !
     ! !LOCAL VARIABLES:
     integer  :: l,c,p
@@ -5320,12 +5321,13 @@ module VegetationDataType
     call hist_addfld1d (fname='HEAT_FROM_AC', units='W/m^2',  &
          avgflag='A', long_name='sensible heat flux put into canyon due to heat removed from air conditioning', &
          ptr_patch=this%eflx_heat_from_ac, set_nourb=0._r8, c2l_scale_type='urbanf')
-
-    this%eflx_anthro(begp:endp) = spval
-    call hist_addfld1d (fname='Qanth', units='W/m^2',  &
-         avgflag='A', long_name='anthropogenic heat flux', &
-         ptr_patch=this%eflx_anthro, set_nourb=0._r8, c2l_scale_type='urbanf', &
-         default='inactive')
+    if ( is_simple_buildtemp )then
+     this%eflx_anthro(begp:endp) = spval
+     call hist_addfld1d (fname='Qanth', units='W/m^2',  &
+          avgflag='A', long_name='anthropogenic heat flux', &
+          ptr_patch=this%eflx_anthro, set_nourb=0._r8, c2l_scale_type='urbanf', &
+          default='inactive')
+    end if
 
     this%taux(begp:endp) = spval
     call hist_addfld1d (fname='TAUX', units='kg/m/s^2',  &
@@ -5364,7 +5366,10 @@ module VegetationDataType
            this%eflx_wasteheat(p)    = 0._r8
            this%eflx_heat_from_ac(p) = 0._r8
            this%eflx_traffic(p)      = 0._r8
-           this%eflx_anthro(p)       = 0._r8
+           if ( is_simple_buildtemp )then
+               this%eflx_anthro(p)       = 0._r8
+           end if
+
         end if
 
         this%eflx_lwrad_out(p) = sb * (col_es%t_grnd(c))**4

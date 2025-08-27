@@ -5609,11 +5609,13 @@ contains
   !------------------------------------------------------------------------
   ! Subroutines to initialize and clean column energy flux data structure
   !------------------------------------------------------------------------
-  subroutine col_ef_init(this, begc, endc)
+  subroutine col_ef_init(this, begc, endc, is_simple_buildtemp)
     !
     ! !ARGUMENTS:
     class(column_energy_flux) :: this
     integer, intent(in) :: begc,endc
+    logical, intent(in) :: is_simple_buildtemp  ! Simple building temp is being used
+
     ! !LOCAL VARIABLES:
     integer  :: l,c
     !-----------------------------------------------------------------------
@@ -5668,20 +5670,22 @@ contains
           avgflag='A', long_name='Urban snow melt heat flux', &
            ptr_col=this%eflx_snomelt_u, c2l_scale_type='urbanf', set_nourb=spval)
 
-    this%eflx_building_heat(begc:endc) = spval
-     call hist_addfld1d (fname='BUILDHEAT', units='W/m^2',  &
-          avgflag='A', long_name='heat flux from urban building interior to walls and roof', &
-           ptr_col=this%eflx_building_heat, set_nourb=0._r8, c2l_scale_type='urbanf')
+    if (is_simple_buildtemp) then
+      this%eflx_building_heat(begc:endc) = spval
+      call hist_addfld1d (fname='BUILDHEAT', units='W/m^2',  &
+            avgflag='A', long_name='heat flux from urban building interior to walls and roof', &
+            ptr_col=this%eflx_building_heat, set_nourb=0._r8, c2l_scale_type='urbanf')
 
-    this%eflx_urban_ac(begc:endc) = spval
-     call hist_addfld1d (fname='URBAN_AC', units='W/m^2',  &
-          avgflag='A', long_name='urban air conditioning flux', &
-           ptr_col=this%eflx_urban_ac, set_nourb=0._r8, c2l_scale_type='urbanf')
+      this%eflx_urban_ac(begc:endc) = spval
+      call hist_addfld1d (fname='URBAN_AC', units='W/m^2',  &
+            avgflag='A', long_name='urban air conditioning flux', &
+            ptr_col=this%eflx_urban_ac, set_nourb=0._r8, c2l_scale_type='urbanf')
 
-    this%eflx_urban_heat(begc:endc) = spval
-     call hist_addfld1d (fname='URBAN_HEAT', units='W/m^2',  &
-          avgflag='A', long_name='urban heating flux', &
-           ptr_col=this%eflx_urban_heat, set_nourb=0._r8, c2l_scale_type='urbanf')
+      this%eflx_urban_heat(begc:endc) = spval
+      call hist_addfld1d (fname='URBAN_HEAT', units='W/m^2',  &
+            avgflag='A', long_name='urban heating flux', &
+            ptr_col=this%eflx_urban_heat, set_nourb=0._r8, c2l_scale_type='urbanf')
+    end if
 
     this%eflx_fgr12(begc:endc) = spval
      call hist_addfld1d (fname='FGR12',  units='W/m^2',  &
@@ -5717,7 +5721,7 @@ contains
   end subroutine col_ef_init
 
   !------------------------------------------------------------------------
-  subroutine col_ef_restart(this, bounds, ncid, flag)
+  subroutine col_ef_restart(this, bounds, ncid, flag,is_simple_buildtemp)
     !
     ! !DESCRIPTION:
     ! Read/Write column energy state information to/from restart file.
@@ -5729,18 +5733,20 @@ contains
     type(bounds_type), intent(in)    :: bounds
     type(file_desc_t), intent(inout) :: ncid
     character(len=*) , intent(in)    :: flag
+    logical, intent(in) :: is_simple_buildtemp  ! Simple building temp is being used
     !
     ! !LOCAL VARIABLES:
     logical :: readvar   ! determine if variable is on initial file
     !-----------------------------------------------------------------------
+    if (is_simple_buildtemp) then
+      call restartvar(ncid=ncid, flag=flag, varname='URBAN_AC', xtype=ncd_double,  dim1name='column', &
+            long_name='urban air conditioning flux', units='watt/m^2', &
+            interpinic_flag='interp', readvar=readvar, data=this%eflx_urban_ac)
 
-    call restartvar(ncid=ncid, flag=flag, varname='URBAN_AC', xtype=ncd_double,  dim1name='column', &
-         long_name='urban air conditioning flux', units='watt/m^2', &
-         interpinic_flag='interp', readvar=readvar, data=this%eflx_urban_ac)
-
-    call restartvar(ncid=ncid, flag=flag, varname='URBAN_HEAT', xtype=ncd_double, dim1name='column', &
-         long_name='urban heating flux', units='watt/m^2', &
-         interpinic_flag='interp', readvar=readvar, data=this%eflx_urban_heat)
+      call restartvar(ncid=ncid, flag=flag, varname='URBAN_HEAT', xtype=ncd_double, dim1name='column', &
+            long_name='urban heating flux', units='watt/m^2', &
+            interpinic_flag='interp', readvar=readvar, data=this%eflx_urban_heat)
+    end if
 
   end subroutine col_ef_restart
 

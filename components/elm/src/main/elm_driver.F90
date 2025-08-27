@@ -134,7 +134,7 @@ module elm_driver
   use tracer_varcon          , only : is_active_betr_bgc
   use CNEcosystemDynBetrMod  , only : CNEcosystemDynBetr, CNFluxStateBetrSummary
   use UrbanParamsType        , only : urbanparams_vars
-  use UrbanTimeVarType       , only : urbantv_vars
+!   use UrbanTimeVarType       , only : urbantv_vars   ! REMOVE MAYBE
 
   use GridcellType           , only : grc_pp
   use GridcellDataType       , only : grc_cs, c13_grc_cs, c14_grc_cs
@@ -253,6 +253,7 @@ contains
     nclumps = get_proc_clumps()
     nstep_mod = get_nstep()
     dtime_mod = real(get_step_size(),r8)
+
     call get_curr_date(year_curr,mon_curr, day_curr,secs_curr)
     dayspyr_mod = get_days_per_year()
     jday_mod = get_curr_calday()
@@ -273,7 +274,7 @@ contains
           call CNPBudget_Reset()
        end if
     end if
-
+    
 
     ! ============================================================================
     ! Specified phenology
@@ -286,6 +287,7 @@ contains
           call interpMonthlyVeg(bounds_proc, canopystate_vars)
           call t_stopf('interpMonthlyVeg')
        endif
+       
 
     elseif(use_fates) then
        if(use_fates_sp) then
@@ -661,8 +663,10 @@ contains
        call fanstream_interp(bounds_proc, atm2lnd_vars)
     end if
 
+    ! REMOVE MAYBE
     ! Get time varying urban data
-    call urbantv_vars%urbantv_interp(bounds_proc)
+   !  call urbantv_vars%urbantv_interp(bounds_proc)
+    ! REMOVE MAYBE
 
     ! ============================================================================
     ! Initialize variables from previous time step, downscale atm forcings, and
@@ -686,6 +690,7 @@ contains
             filter(nc)%num_nolakep, filter(nc)%nolakep, &
             filter(nc)%num_soilp  , filter(nc)%soilp,   &
             canopystate_vars, energyflux_vars)
+
 
        call downscale_forcings(bounds_clump, &
             filter(nc)%num_do_smb_c, filter(nc)%do_smb_c, &
@@ -861,7 +866,8 @@ contains
             filter(nc)%num_urbanl  , filter(nc)%urbanl,       &
             filter(nc)%num_nolakec , filter(nc)%nolakec,      &
             atm2lnd_vars, urbanparams_vars, canopystate_vars, &
-            solarabs_vars, soilstate_vars, energyflux_vars, urbantv_vars )
+            solarabs_vars, soilstate_vars, energyflux_vars)
+        
        call t_stopf('soiltemperature')
 
 

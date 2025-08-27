@@ -150,7 +150,7 @@ contains
   !-----------------------------------------------------------------------
   subroutine SoilTemperature(bounds, num_urbanl, filter_urbanl, num_nolakec, filter_nolakec, &
        atm2lnd_vars, urbanparams_vars, canopystate_vars, &
-       solarabs_vars, soilstate_vars, energyflux_vars, urbantv_vars)
+       solarabs_vars, soilstate_vars, energyflux_vars)
     !
     ! !DESCRIPTION:
     ! Snow and soil temperatures including phase change
@@ -191,7 +191,7 @@ contains
     integer                , intent(in)    :: filter_urbanl(:)                   ! urban landunit filter
     type(atm2lnd_type)     , intent(in)    :: atm2lnd_vars
     type(urbanparams_type) , intent(in)    :: urbanparams_vars
-    type(urbantv_type)     ,  intent(in)   :: urbantv_vars
+   !  type(urbantv_type)     ,  intent(in)   :: urbantv_vars ! REMOVE MAYBE
     type(canopystate_type) , intent(in)    :: canopystate_vars
     type(soilstate_type)   , intent(inout) :: soilstate_vars
     type(solarabs_type)    , intent(inout) :: solarabs_vars
@@ -302,7 +302,6 @@ contains
          )
 
       ! Get step size
-
       dtime = dtime_mod !get_step_size()
 
       if ( IsSimpleBuildTemp() ) then
@@ -575,7 +574,6 @@ contains
       enddo
 
       ! Melting or Freezing
-
       do j = -nlevsno+1,nlevgrnd
          do fc = 1,num_nolakec
             c = filter_nolakec(fc)
@@ -593,8 +591,6 @@ contains
                         ! Note new formulation for fn, this will be used below in net energey flux computations
                         fn1(c,j) = tk(c,j) * (t_building(l) - t_soisno(c,j))/(zi(c,j) - z(c,j))
                         fn(c,j)  = tk(c,j) * (t_building(l) - tssbef(c,j))/(zi(c,j) - z(c,j))
-                      
-                        ! ADDED
                      else
                         ! the bottom "soil" layer and the equations are derived assuming a prognostic inner
                         ! surface temperature.
@@ -609,9 +605,6 @@ contains
                           fn(c,j)  = tk(c,j) * (t_roof_inner(l) - tssbef(c,j))/(zi(c,j) - z(c,j))
                         end if
                      end if
-                          ! END ADDED
-                        
-
                   end if
                end if
             else if (col_pp%itype(c) /= icol_sunwall .and. col_pp%itype(c) /= icol_shadewall &
@@ -636,15 +629,17 @@ contains
             else
                eflx_building_heat(c) = 0._r8
             end if
-            if (cool_on(l)) then
-               eflx_urban_ac(c) = abs(eflx_building_heat(c))
-               eflx_urban_heat(c) = 0._r8
-            else if (heat_on(l)) then
-               eflx_urban_ac(c) = 0._r8
-               eflx_urban_heat(c) = abs(eflx_building_heat(c))
-            else
-               eflx_urban_ac(c) = 0._r8
-               eflx_urban_heat(c) = 0._r8
+            if ( IsSimpleBuildTemp() )then
+               if (cool_on(l)) then
+                  eflx_urban_ac(c) = abs(eflx_building_heat(c))
+                  eflx_urban_heat(c) = 0._r8
+               else if (heat_on(l)) then
+                  eflx_urban_ac(c) = 0._r8
+                  eflx_urban_heat(c) = abs(eflx_building_heat(c))
+               else
+                  eflx_urban_ac(c) = 0._r8
+                  eflx_urban_heat(c) = 0._r8
+               end if
             end if
          end if
       end do
@@ -663,7 +658,7 @@ contains
            dhsdT(bounds%begc:bounds%endc), soilstate_vars, energyflux_vars, dtime)
       if ( IsProgBuildTemp() )then
          call BuildingTemperature(bounds, num_urbanl, filter_urbanl, num_nolakec, filter_nolakec, &
-                                  tk(bounds%begc:bounds%endc, :), urbanparams_vars, urbantv_vars)
+                                  tk(bounds%begc:bounds%endc, :), urbanparams_vars)
       end if
       do fc = 1,num_nolakec
          c = filter_nolakec(fc)
@@ -1750,6 +1745,8 @@ contains
     use elm_varcon     , only : sb, hvap
     use column_varcon  , only : icol_road_perv, icol_road_imperv
     use elm_varpar     , only : nlevsno, max_patch_per_col
+    use UrbanParamsType          , only : IsSimpleBuildTemp, IsProgBuildTemp
+
     !
     ! !ARGUMENTS:
     implicit none
@@ -1902,7 +1899,9 @@ contains
                           - eflx_lwrad_net(p) &
                           - (eflx_sh_grnd(p) + qflx_evap_soi(p)*htvp(c) + qflx_tran_veg(p)*hvap) &
                           + eflx_wasteheat_patch(p) + eflx_heat_from_ac_patch(p) + eflx_traffic_patch(p)
-                     eflx_anthro(p)   = eflx_wasteheat_patch(p) + eflx_traffic_patch(p)
+                     if ( IsSimpleBuildTemp() ) then
+                          eflx_anthro(p)   = eflx_wasteheat_patch(p) + eflx_traffic_patch(p)
+                     end if
                      eflx_gnet_snow   = eflx_gnet(p)
                      eflx_gnet_soil   = eflx_gnet(p)
                      eflx_gnet_h2osfc = eflx_gnet(p)
@@ -1993,6 +1992,8 @@ contains
     use elm_varcon     , only : capr, cnfac
     use column_varcon  , only : icol_roof, icol_sunwall, icol_shadewall
     use elm_varpar     , only : nlevsno, nlevgrnd, nlevurb
+    use UrbanParamsType          , only : IsSimpleBuildTemp, IsProgBuildTemp
+
     !
     ! !ARGUMENTS:
     implicit none
@@ -2018,7 +2019,11 @@ contains
          zi         => col_pp%zi                          , & ! Input: [real(r8) (:,:) ] interface level below a "z" level (m)
          dz         => col_pp%dz                          , & ! Input: [real(r8) (:,:) ] layer depth (m)
          z          => col_pp%z                           , & ! Input: [real(r8) (:,:) ] layer thickness (m)
+         ctype      => col_pp%itype                       , & ! Input: [integer (:)    ]  column type
          t_building => lun_es%t_building , & ! Input: [real(r8) (:)   ] internal building temperature (K)
+         t_roof_inner => lun_es%t_roof_inner       , & ! Input:  [real(r8) (:)   ]  roof inside surface temperature [K]
+         t_sunw_inner => lun_es%t_sunw_inner       , & ! Input:  [real(r8) (:)   ]  sunwall inside surface temperature [K]
+         t_shdw_inner => lun_es%t_shdw_inner       , & ! Input:  [real(r8) (:)   ]  shadewall inside surface temperature [K]
          t_soisno   => col_es%t_soisno   , & ! Input: [real(r8) (:,:) ] soil temperature (Kelvin)
          eflx_bot   => col_ef%eflx_bot      & ! Input: [real(r8) (:)   ] heat flux from beneath column (W/m**2) [+ = upward]
          )
@@ -2043,10 +2048,27 @@ contains
                      dzm     = (z(c,j)-z(c,j-1))
                   else if (j == nlevurb) then
                      fact(c,j) = dtime/cv(c,j)
-                     ! For urban sunwall, shadewall, and roof columns, there is a non-zero heat flux across
+
+                     if ( IsSimpleBuildTemp() ) then
                      ! the bottom "soil" layer and the equations are derived assuming a prescribed internal
                      ! building temperature. (See Oleson urban notes of 6/18/03).
-                     fn(c,j) = tk(c,j) * (t_building(l) - cnfac*t_soisno(c,j))/(zi(c,j) - z(c,j))
+                        fn(c,j) = tk(c,j) * (t_building(l) - cnfac*t_soisno(c,j))/(zi(c,j) - z(c,j))
+                     else
+                        ! the bottom "soil" layer and the equations are derived assuming a prognostic inner
+                        ! surface temperature.
+
+                        if (ctype(c) == icol_sunwall) then
+
+                           fn(c,j) = tk(c,j) * (t_sunw_inner(l) - cnfac*t_soisno(c,j))/(zi(c,j) - z(c,j))
+                        else if (ctype(c) == icol_shadewall) then
+
+                           fn(c,j) = tk(c,j) * (t_shdw_inner(l) - cnfac*t_soisno(c,j))/(zi(c,j) - z(c,j))
+                        else if (ctype(c) == icol_roof) then
+
+                           fn(c,j) = tk(c,j) * (t_roof_inner(l) - cnfac*t_soisno(c,j))/(zi(c,j) - z(c,j))
+                        end if  
+                     end if
+
                   end if
                end if
             else if (col_pp%itype(c) /= icol_sunwall .and. col_pp%itype(c) /= icol_shadewall &

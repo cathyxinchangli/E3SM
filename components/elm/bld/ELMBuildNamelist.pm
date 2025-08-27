@@ -2098,6 +2098,11 @@ sub process_namelist_inline_logic {
   ##################################
   setup_logic_lightning_streams($opts->{'test'}, $nl_flags, $definition, $defaults, $nl, $physv);
 
+  ####################################
+  # namelist group: urbantv_streams  #
+  ####################################
+  # setup_logic_urbantv_streams($opts,  $nl_flags, $definition, $defaults, $nl); # REMOVE MAYVE
+
   #################################
   # namelist group: drydep_inparm #
   #################################
@@ -3274,6 +3279,30 @@ sub setup_logic_lightning_streams {
       }
     }
   }
+}
+
+#-------------------------------------------------------------------------------
+
+sub setup_logic_urbantv_streams {
+  my ($opts, $nl_flags, $definition, $defaults, $nl) = @_;
+
+  add_default($opts, $nl_flags->{'inputdata_rootdir'}, $definition, $defaults, $nl, 'urbantvmapalgo',
+              'hgrid'=>$nl_flags->{'res'} );
+  add_default($opts, $nl_flags->{'inputdata_rootdir'}, $definition, $defaults, $nl, 'stream_year_first_urbantv', 'phys'=>$nl_flags->{'phys'},
+              'sim_year'=>$nl_flags->{'sim_year'},
+              'sim_year_range'=>$nl_flags->{'sim_year_range'});
+  add_default($opts, $nl_flags->{'inputdata_rootdir'}, $definition, $defaults, $nl, 'stream_year_last_urbantv', 'phys'=>$nl_flags->{'phys'},
+              'sim_year'=>$nl_flags->{'sim_year'},
+              'sim_year_range'=>$nl_flags->{'sim_year_range'});
+  # Set align year, if first and last years are different
+  if ( $nl->get_value('stream_year_first_urbantv') !=
+       $nl->get_value('stream_year_last_urbantv') ) {
+     add_default($opts, $nl_flags->{'inputdata_rootdir'}, $definition, $defaults, $nl,
+                 'model_year_align_urbantv', 'sim_year'=>$nl_flags->{'sim_year'},
+                 'sim_year_range'=>$nl_flags->{'sim_year_range'});
+  }
+  add_default($opts, $nl_flags->{'inputdata_rootdir'}, $definition, $defaults, $nl, 'stream_fldfilename_urbantv', 'phys'=>$nl_flags->{'phys'},
+              'hgrid'=>"0.9x1.25" );
 }
 
 #-------------------------------------------------------------------------------
