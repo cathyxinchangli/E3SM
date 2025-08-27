@@ -14,8 +14,6 @@ module UrbBuildTempOleson2015Mod
   use elm_varctl        , only : iulog
   use UrbanParamsType   , only : urbanparams_type
   use UrbanTimeVarType  , only : urbantv_type  
-  ! use EnergyFluxType    , only : energyflux_type  ! REMOVE
-  ! use TemperatureType   , only : temperature_type ! REMOVE
   use LandunitType      , only : lun_pp                
   use ColumnType        , only : col_pp       
   use LandunitDataType  , only : lun_es, lun_ef    
@@ -223,8 +221,6 @@ contains
     integer , intent(in)  :: filter_urbanl(:)                 ! urban landunit filter
     real(r8), intent(in)  :: tk(bounds%begc: , -nlevsno+1: )  ! thermal conductivity (W m-1 K-1) [col, j]
     type(urbanparams_type), intent(in)    :: urbanparams_vars ! urban parameters
-    ! type(temperature_type), intent(inout) :: temperature_inst ! temperature variables   ! REMOVE
-    ! type(energyflux_type) , intent(inout) :: energyflux_inst  ! energy flux variables  ! REMOVE
     ! type(urbantv_type)    , intent(in)    :: urbantv_vars     ! urban time varying variables   ! REMOVE MAYBE
 !
 ! !LOCAL VARIABLES:

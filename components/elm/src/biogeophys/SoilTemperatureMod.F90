@@ -191,7 +191,6 @@ contains
     integer                , intent(in)    :: filter_urbanl(:)                   ! urban landunit filter
     type(atm2lnd_type)     , intent(in)    :: atm2lnd_vars
     type(urbanparams_type) , intent(in)    :: urbanparams_vars
-   !  type(urbantv_type)     ,  intent(in)   :: urbantv_vars ! REMOVE MAYBE
     type(canopystate_type) , intent(in)    :: canopystate_vars
     type(soilstate_type)   , intent(inout) :: soilstate_vars
     type(solarabs_type)    , intent(inout) :: solarabs_vars
