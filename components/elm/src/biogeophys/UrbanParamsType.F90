@@ -9,6 +9,7 @@ module UrbanParamsType
   use shr_log_mod  , only : errMsg => shr_log_errMsg
   use abortutils   , only : endrun
   use decompMod    , only : bounds_type
+  use histFileMod    , only : hist_addfld1d
   use elm_varctl   , only : iulog, fsurdat
   use elm_varcon   , only : namel, grlnd, spval
   use LandunitType , only : lun_pp 
@@ -206,7 +207,7 @@ module UrbanParamsType
     allocate(this%alb_wall_dir        (begl:endl,numrad))   ; this%alb_wall_dir        (:,:) = spval
     allocate(this%alb_wall_dif        (begl:endl,numrad))   ; this%alb_wall_dif        (:,:) = spval
     allocate(this%eflx_traffic_factor (begl:endl))          ; this%eflx_traffic_factor (:)   = spval
-
+    
     !-----------------------------------------------------------------------
     ! initialize history fields for select members of lun_es
     !-----------------------------------------------------------------------
@@ -214,9 +215,11 @@ module UrbanParamsType
             avgflag='A', long_name='Temperature building maximum temperature', &
             ptr_lunit=this%t_building_max, set_nourb=spval, l2g_scale_type='unity', &
             default='inactive')
+    call hist_addfld1d(fname='T_BUILDING_MIN', units='K',  &
+            avgflag='A', long_name='Temperature building maximum temperature', &
+            ptr_lunit=this%t_building_min, set_nourb=spval, l2g_scale_type='unity', &
+            default='inactive')
 
-
-            
     ! Initialize time constant urban variables
 
     do l = bounds%begl,bounds%endl
