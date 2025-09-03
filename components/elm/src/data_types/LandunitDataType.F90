@@ -128,24 +128,25 @@ contains
          avgflag='A', long_name=lname, &
          ptr_lunit=this%t_building, set_nourb=spval, l2g_scale_type='unity')
 
-    if ( is_prog_buildtemp )then
-       this%t_roof_inner(begl:endl) = spval
-       call hist_addfld1d(fname='TROOF_INNER', units='K',  &
+    this%t_roof_inner(begl:endl) = spval
+    call hist_addfld1d(fname='TROOF_INNER', units='K',  &
             avgflag='A', long_name='roof inside surface temperature', &
             ptr_lunit=this%t_roof_inner, set_nourb=spval, l2g_scale_type='unity', &
             default='inactive')
 
-       this%t_sunw_inner(begl:endl) = spval
-       call hist_addfld1d(fname='TSUNW_INNER', units='K',  &
+    this%t_sunw_inner(begl:endl) = spval
+    call hist_addfld1d(fname='TSUNW_INNER', units='K',  &
             avgflag='A', long_name='sunwall inside surface temperature', &
             ptr_lunit=this%t_sunw_inner, set_nourb=spval, l2g_scale_type='unity', &
             default='inactive')
 
-       this%t_shdw_inner(begl:endl) = spval
-       call hist_addfld1d(fname='TSHDW_INNER', units='K',  &
+    this%t_shdw_inner(begl:endl) = spval
+    call hist_addfld1d(fname='TSHDW_INNER', units='K',  &
             avgflag='A', long_name='shadewall inside surface temperature', &
             ptr_lunit=this%t_shdw_inner, set_nourb=spval, l2g_scale_type='unity', &
-            default='inactive')
+            default='inactive')   
+         
+    if ( is_prog_buildtemp )then
 
        this%t_floor(begl:endl) = spval
        call hist_addfld1d(fname='TFLOOR', units='K',  &

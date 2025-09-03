@@ -1148,14 +1148,17 @@ end subroutine simple_wasteheatfromac
   ! !LOCAL VARIABLES:
     ! Gather terms required to determine internal building temperature
     integer  :: fl,fc,l,c                                    ! indices
-    real(r8) :: t_sunwall_innerl(bounds%begl:bounds%endl)    ! temp of inner layer of sunwall (K)
-    real(r8) :: t_shadewall_innerl(bounds%begl:bounds%endl)  ! temp of inner layer of shadewall (K)
-    real(r8) :: t_roof_innerl(bounds%begl:bounds%endl)       ! temp of inner layer of roof (K)
+   !  real(r8) :: t_sunwall_innerl(bounds%begl:bounds%endl)    ! temp of inner layer of sunwall (K)
+   !  real(r8) :: t_shadewall_innerl(bounds%begl:bounds%endl)  ! temp of inner layer of shadewall (K)
+   !  real(r8) :: t_roof_innerl(bounds%begl:bounds%endl)       ! temp of inner layer of roof (K)
     real(r8) :: lngth_roof                                   ! length of roof (m)
   !EOP
   !----------------------------------------------------------------------- 
 
     associate(&
+     t_sunwall_innerl =>    lun_es%t_sunw_inner               , & ! temp of inner layer of sunwall (K)
+     t_shadewall_innerl => lun_es%t_shdw_inner             , & ! temp of inner layer of shadewall (K)
+     t_roof_innerl =>    lun_es%t_roof_inner               , & ! temp of inner layer of roof (K)
      t_soisno      =>    col_es%t_soisno                   , & ! Input:  [real(r8) (:,:) ]  soil temperature (K)     
      ht_roof       =>    lun_pp%ht_roof                    , & ! Input:  [real(r8) (:)]    height of urban roof (m)
      canyon_hwr    =>    lun_pp%canyon_hwr                 , & ! Input:  [real(r8) (:)]    ratio of building height to street width 

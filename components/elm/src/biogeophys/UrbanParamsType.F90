@@ -207,6 +207,16 @@ module UrbanParamsType
     allocate(this%alb_wall_dif        (begl:endl,numrad))   ; this%alb_wall_dif        (:,:) = spval
     allocate(this%eflx_traffic_factor (begl:endl))          ; this%eflx_traffic_factor (:)   = spval
 
+    !-----------------------------------------------------------------------
+    ! initialize history fields for select members of lun_es
+    !-----------------------------------------------------------------------
+    call hist_addfld1d(fname='T_BUILDING_MAX', units='K',  &
+            avgflag='A', long_name='Temperature building maximum temperature', &
+            ptr_lunit=this%t_building_max, set_nourb=spval, l2g_scale_type='unity', &
+            default='inactive')
+
+
+            
     ! Initialize time constant urban variables
 
     do l = bounds%begl,bounds%endl
