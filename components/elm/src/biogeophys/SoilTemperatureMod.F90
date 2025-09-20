@@ -21,6 +21,7 @@ module SoilTemperatureMod
   use SolarAbsorbedType , only : solarabs_type
   use SoilStateType     , only : soilstate_type
   use EnergyFluxType    , only : energyflux_type
+
   use TopounitDataType  , only : top_af
   use LandunitType      , only : lun_pp
   use LandunitDataType  , only : lun_es, lun_ef
@@ -657,7 +658,7 @@ contains
            dhsdT(bounds%begc:bounds%endc), soilstate_vars, energyflux_vars, dtime)
       if ( IsProgBuildTemp() )then
          call BuildingTemperature(bounds, num_urbanl, filter_urbanl, num_nolakec, filter_nolakec, &
-                                  tk(bounds%begc:bounds%endc, :), urbanparams_vars)
+                                  tk(bounds%begc:bounds%endc, :), urbanparams_vars, atm2lnd_vars)
       end if
       do fc = 1,num_nolakec
          c = filter_nolakec(fc)
