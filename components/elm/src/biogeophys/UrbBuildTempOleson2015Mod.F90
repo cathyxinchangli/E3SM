@@ -347,7 +347,7 @@ contains
     ! 5. Calculate building height to building width ratio
     do fl = 1,num_urbanl
        l = filter_urbanl(fl)
-       g = lun%gridcell(l)
+       g = lun_pp%gridcell(l)
        if (urbpoi(l)) then
          t_roof_inner_bef(l)  = t_roof_inner(l)
          t_sunw_inner_bef(l)  = t_sunw_inner(l)
