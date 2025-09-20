@@ -315,6 +315,9 @@ contains
     allocate( this%eflx_urban_heat     (begl:endl))             ; this%eflx_urban_heat     (:)   = spval
     allocate( this%eflx_building       (begl:endl))             ; this%eflx_building       (:)   = spval
 
+    !-----------------------------------------------------------------------
+    ! initialize history fields for select members of lun_ef
+    !-----------------------------------------------------------------------
     if (is_prog_buildtemp) then
       this%eflx_urban_ac(begl:endl) = spval
       call hist_addfld1d (fname='EFLXBUILD', units='W/m^2',  &
@@ -464,6 +467,7 @@ contains
     !-----------------------------------------------------------------------
     allocate(this%qaf          (begl:endl))               ; this%qaf         (:)   = spval
 
+
     !-----------------------------------------------------------------------
     ! cold-start initial conditions for lun_ws
     !-----------------------------------------------------------------------
@@ -498,7 +502,7 @@ contains
      ! !LOCAL VARIABLES:
      logical :: readvar   ! determine if variable is on initial file
      !-----------------------------------------------------------------------
-
+      
      call restartvar(ncid=ncid, flag=flag, varname='qaf', xtype=ncd_double, dim1name='landunit',                       &
           long_name='urban canopy specific humidity', units='kg/kg',                                                   &
           interpinic_flag='interp', readvar=readvar, data=this%qaf)
