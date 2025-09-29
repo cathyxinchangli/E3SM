@@ -27,6 +27,7 @@ module UrbanTimeVarType
   type, public :: urbantv_type
 
      real(r8), public, pointer     :: t_building_max(:)    ! lun maximum internal building air temperature (K)
+     real(r8), public, pointer     :: p_ac(:)              ! lun air-conditioning adoption rate (unitless, between 0 and 1)
      type(shr_strdata_type)        :: sdat_urbantv         ! urban time varying input data stream
    contains
 
