@@ -714,6 +714,11 @@ Turn urban air conditioning/heating ON or OFF and add wasteheat:
        1 = prognostic calculation of interior building temp (clm5_0)
 </entry>
 
+<entry id="urban_explicit_ac" type="logical" category="elm_physics"
+       group="elmu_inparm" valid_values="" >
+If TRUE, use explicit, time-varying AC adoption rate for air-conditioning flux and interior building temperature calculations.
+</entry>
+
 <entry id="urban_traffic" type="logical" category="elm_physics"
        group="elmu_inparm" valid_values="" >
 If TRUE, urban traffic flux will be activated (Currently NOT implemented).
