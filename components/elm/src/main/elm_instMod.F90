@@ -80,7 +80,7 @@ module elm_instMod
 
   ! instances declared in their own modules
   use UrbanParamsType            , only : urbanparams_vars
-!   use UrbanTimeVarType           , only : urbantv_vars  ! REMOVE MAYBE
+  use UrbanTimeVarType           , only : urbantv_vars  ! REMOVE (COMMENT LINE) MAYBE TO TEST
   use UrbanParamsType            , only : IsSimpleBuildTemp, IsProgBuildTemp
   use controlMod                 , only : nlfilename
 
@@ -364,10 +364,8 @@ contains
 
     call urbanparams_vars%Init(bounds_proc)
 
-    ! REMOVE MAYBE
     ! Initialize urban time varying data
-   !  call urbantv_vars%Init(bounds_proc,NLFilename)
-    ! END REMOVE MAYBE
+    call urbantv_vars%Init(bounds_proc,NLFilename)
 
     ! Initialize ecophys constants
 

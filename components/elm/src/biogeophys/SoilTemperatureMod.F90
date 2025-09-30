@@ -151,7 +151,7 @@ contains
   !-----------------------------------------------------------------------
   subroutine SoilTemperature(bounds, num_urbanl, filter_urbanl, num_nolakec, filter_nolakec, &
        atm2lnd_vars, urbanparams_vars, canopystate_vars, &
-       solarabs_vars, soilstate_vars, energyflux_vars)
+       solarabs_vars, soilstate_vars, energyflux_vars, urbantv_vars)
     !
     ! !DESCRIPTION:
     ! Snow and soil temperatures including phase change
@@ -192,6 +192,7 @@ contains
     integer                , intent(in)    :: filter_urbanl(:)                   ! urban landunit filter
     type(atm2lnd_type)     , intent(in)    :: atm2lnd_vars
     type(urbanparams_type) , intent(in)    :: urbanparams_vars
+    type(urbantv_type)     , intent(in)    :: urbantv_vars
     type(canopystate_type) , intent(in)    :: canopystate_vars
     type(soilstate_type)   , intent(inout) :: soilstate_vars
     type(solarabs_type)    , intent(inout) :: solarabs_vars
@@ -241,8 +242,8 @@ contains
          dz                      => col_pp%dz                                  , & ! Input:  [real(r8) (:,:) ]  layer depth (m)
          z                       => col_pp%z                                   , & ! Input:  [real(r8) (:,:) ]  layer thickness (m)
          ctype                   => col_pp%itype                               , & ! Input:  [integer (:)    ]  column type
-
-         t_building_max          => urbanparams_vars%t_building_max         , & ! Input:  [real(r8) (:)   ]  maximum internal building temperature (K)
+         t_building_max          => urbantv_vars%t_building_max             , & ! Input:  [real(r8) (:)   ]  maximum internal building air temperature [K]   ! REMOVE (COMMENT LINE) MAYBE TO TEST CODE
+         ! t_building_max          => urbanparams_vars%t_building_max         , & ! Input:  [real(r8) (:)   ]  maximum internal building temperature (K)     ! REMOVE
          t_building_min          => urbanparams_vars%t_building_min         , & ! Input:  [real(r8) (:)   ]  minimum internal building temperature (K)
 
          frac_veg_nosno          => canopystate_vars%frac_veg_nosno_patch   , & ! Input:  [integer  (:)   ]  fraction of vegetation not covered by snow (0 OR 1) [-]
@@ -284,7 +285,7 @@ contains
          emg                     => col_es%emg                              , & ! Input:  [real(r8) (:)   ]  ground emissivity
          hc_soi                  => col_es%hc_soi                           , & ! Input:  [real(r8) (:)   ]  soil heat content (MJ/m2)               ! TODO: make a module variable
          hc_soisno               => col_es%hc_soisno                        , & ! Input:  [real(r8) (:)   ]  soil plus snow plus lake heat content (MJ/m2) !TODO: make a module variable
-         tssbef                  => col_es%t_ssbef                          , & ! Input:  [real(r8) (:,:) ]  temperature at previous time step [K]
+         tssbef                  => col_es%t_ssbef                          , & ! Input:  [real(r8) (:,:) ]  temperature at previous time step [K]0
          t_h2osfc                => col_es%t_h2osfc                         , & ! Output: [real(r8) (:)   ]  surface water temperature
          t_soisno                => col_es%t_soisno                         , & ! Output: [real(r8) (:,:) ]  soil temperature (Kelvin)
          t_grnd                  => col_es%t_grnd                           , & ! Output: [real(r8) (:)   ]  ground surface temperature [K]
@@ -658,7 +659,7 @@ contains
            dhsdT(bounds%begc:bounds%endc), soilstate_vars, energyflux_vars, dtime)
       if ( IsProgBuildTemp() )then
          call BuildingTemperature(bounds, num_urbanl, filter_urbanl, num_nolakec, filter_nolakec, &
-                                  tk(bounds%begc:bounds%endc, :), urbanparams_vars, atm2lnd_vars)
+                                  tk(bounds%begc:bounds%endc, :), urbanparams_vars, atm2lnd_vars, urbantv_vars)
       end if
       do fc = 1,num_nolakec
          c = filter_nolakec(fc)

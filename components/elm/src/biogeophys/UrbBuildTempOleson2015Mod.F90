@@ -42,7 +42,7 @@ contains
 !
 ! !INTERFACE:
   subroutine BuildingTemperature (bounds, num_urbanl, filter_urbanl, num_nolakec, &
-                                  filter_nolakec, tk, urbanparams_vars, atm2lnd_vars)
+                                  filter_nolakec, tk, urbanparams_vars, atm2lnd_vars, urbantv_vars)
 !
 ! !DESCRIPTION:
 ! Solve for t_building, inner surface temperatures of roof, sunw, shdw, and floor temperature
@@ -210,7 +210,7 @@ contains
     use elm_varctl      , only : iulog
     use abortutils      , only : endrun
     use elm_varpar      , only : nlevurb, nlevsno, nlevgrnd
-    use UrbanParamsType , only : urban_hac, urban_hac_off, urban_hac_on, urban_wasteheat_on
+    use UrbanParamsType , only : urban_hac, urban_hac_off, urban_hac_on, urban_wasteheat_on, urban_explicit_ac
     
     ! 
 ! !ARGUMENTS:
@@ -223,7 +223,7 @@ contains
     real(r8), intent(in)  :: tk(bounds%begc: , -nlevsno+1: )  ! thermal conductivity (W m-1 K-1) [col, j]
     type(urbanparams_type), intent(in)    :: urbanparams_vars ! urban parameters
     type(atm2lnd_type)    , intent(in)    :: atm2lnd_vars     ! forcing variables from atmosphere
-    ! type(urbantv_type)    , intent(in)    :: urbantv_vars     ! urban time varying variables   ! REMOVE MAYBE
+    type(urbantv_type)    , intent(in)    :: urbantv_vars     ! urban time varying variables   ! REMOVE (COMMENT LINE) MAYBE FOR TESTING WITH DEFAULT
 !
 ! !LOCAL VARIABLES:
     integer, parameter :: neq = 5          ! number of equation/unknowns
@@ -236,6 +236,7 @@ contains
     real(r8) :: t_floor_bef(bounds%begl:bounds%endl)       ! floor temperature at previous time step (K)              
     real(r8) :: t_building_bef(bounds%begl:bounds%endl)    ! internal building air temperature at previous time step [K]
     real(r8) :: t_building_bef_hac(bounds%begl:bounds%endl)! internal building air temperature before applying HAC [K]
+    real(r8) :: eflx_urban_ac_sat(bounds%begl:bounds%endl) ! urban air conditioning flux under AC adoption saturation (W/m**2)
     real(r8) :: hcv_roofi(bounds%begl:bounds%endl)         ! roof convective heat transfer coefficient (W m-2 K-1)
     real(r8) :: hcv_sunwi(bounds%begl:bounds%endl)         ! sunwall convective heat transfer coefficient (W m-2 K-1)
     real(r8) :: hcv_shdwi(bounds%begl:bounds%endl)         ! shadewall convective heat transfer coefficient (W m-2 K-1)
@@ -324,9 +325,9 @@ contains
     t_shdw_inner      => lun_es%t_shdw_inner               , & ! InOut:  [real(r8) (:)]  shadewall inside surface temperature (K)
     t_floor           => lun_es%t_floor                    , & ! InOut:  [real(r8) (:)]  floor temperature (K)
     t_building        => lun_es%t_building                 , & ! InOut:  [real(r8) (:)]  internal building air temperature (K)
-
-    ! t_building_max    => urbantv_vars%t_building_max       , & ! Input:  [real(r8) (:)]  maximum internal building air temperature (K)  ! REMOVE MAYBE
-    t_building_max    => urbanparams_vars%t_building_max   , & ! Input:  [real(r8) (:)]  maximum internal building air temperature (K)
+    p_ac              => urbantv_vars%p_ac                 , & ! Input:  [real(r8) (:)]  air-conditioning penetration rate (a fraction between 0 and 1)  ! REMOVE (COMMENT LINE) MAYBE FOR TESTING WITH DEFAULT
+    t_building_max    => urbantv_vars%t_building_max       , & ! Input:  [real(r8) (:)]  maximum internal building air temperature (K)  
+    ! t_building_max    => urbanparams_vars%t_building_max   , & ! Input:  [real(r8) (:)]  maximum internal building air temperature (K)  ! REMOVE
     t_building_min    => urbanparams_vars%t_building_min   , & ! Input:  [real(r8) (:)]  minimum internal building air temperature (K)
 
     eflx_building     => lun_ef%eflx_building , & ! Output:  [real(r8) (:)]  building heat flux from change in interior building air temperature (W/m**2)
@@ -917,9 +918,19 @@ contains
 !           rho_dair(l) = pstd / (rair*t_building(l))
 
             if (t_building_bef_hac(l) > t_building_max(l)) then
-              t_building(l) = t_building_max(l)
-              eflx_urban_ac(l) = wtlunit_roof(l) * abs( (ht_roof(l) * rho_dair(l) * cpair / dtime) * t_building(l) &
-                                 - (ht_roof(l) * rho_dair(l) * cpair / dtime) * t_building_bef_hac(l) )
+              if (urban_explicit_ac) then   ! use explicit ac adoption rate parameterization scheme:
+                ! Here, t_building_max is the AC saturation setpoint
+                eflx_urban_ac_sat(l) = wtlunit_roof(l) * abs( (ht_roof(l) * rho_dair(l) * cpair / dtime) * t_building_max(l) &
+                                     - (ht_roof(l) * rho_dair(l) * cpair / dtime) * t_building_bef_hac(l) )
+                t_building(l) = t_building_max(l) + ( 1._r8 - p_ac(l) ) * eflx_urban_ac_sat(l) &
+                              * dtime / (ht_roof(l) * rho_dair(l) * cpair * wtlunit_roof(l))
+                eflx_urban_ac(l) = p_ac(l) * eflx_urban_ac_sat(l)
+              else
+                t_building(l) = t_building_max(l)
+                eflx_urban_ac(l) = wtlunit_roof(l) * abs( (ht_roof(l) * rho_dair(l) * cpair / dtime) * t_building(l) &
+                                   - (ht_roof(l) * rho_dair(l) * cpair / dtime) * t_building_bef_hac(l) )
+              end if
+            
             else if (t_building_bef_hac(l) < t_building_min(l)) then
               t_building(l) = t_building_min(l)
               eflx_urban_heat(l) = wtlunit_roof(l) * abs( (ht_roof(l) * rho_dair(l) * cpair / dtime) * t_building(l) &

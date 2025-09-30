@@ -133,8 +133,8 @@ module elm_driver
   use elm_instMod            , only : sedflux_vars
   use tracer_varcon          , only : is_active_betr_bgc
   use CNEcosystemDynBetrMod  , only : CNEcosystemDynBetr, CNFluxStateBetrSummary
-  use UrbanParamsType        , only : urbanparams_vars
-!   use UrbanTimeVarType       , only : urbantv_vars   ! REMOVE MAYBE
+  use UrbanParamsType        , only : urbanparams_vars   !!! not used in clm_driver, verify exactly why (REMOVE COMMENT)
+  use UrbanTimeVarType       , only : urbantv_vars    !!! not used in clm_driver, verify exactly why (REMOVE COMMENT)
 
   use GridcellType           , only : grc_pp
   use GridcellDataType       , only : grc_cs, c13_grc_cs, c14_grc_cs
@@ -665,7 +665,7 @@ contains
 
     ! REMOVE MAYBE
     ! Get time varying urban data
-   !  call urbantv_vars%urbantv_interp(bounds_proc)
+    call urbantv_vars%urbantv_interp(bounds_proc)
     ! REMOVE MAYBE
 
     ! ============================================================================
@@ -866,7 +866,7 @@ contains
             filter(nc)%num_urbanl  , filter(nc)%urbanl,       &
             filter(nc)%num_nolakec , filter(nc)%nolakec,      &
             atm2lnd_vars, urbanparams_vars, canopystate_vars, &
-            solarabs_vars, soilstate_vars, energyflux_vars)
+            solarabs_vars, soilstate_vars, energyflux_vars, urbantv_vars)
         
        call t_stopf('soiltemperature')
 
