@@ -1490,7 +1490,7 @@ Mapping method from human population density input file to the model resolution
 
 
 <!-- ========================================================================================  -->
-<!-- urbantv_streams Namelist (when CLM4_5/CLM5_0 is active)                                   -->
+<!-- urbantv_streams Namelist                                                                  -->
 <!-- ========================================================================================  -->
 
 <!-- urban time varying -->

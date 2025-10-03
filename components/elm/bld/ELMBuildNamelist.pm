@@ -2101,7 +2101,7 @@ sub process_namelist_inline_logic {
   ####################################
   # namelist group: urbantv_streams  #
   ####################################
-  # setup_logic_urbantv_streams($opts,  $nl_flags, $definition, $defaults, $nl); # REMOVE MAYVE
+  setup_logic_urbantv_streams($opts,  $nl_flags, $definition, $defaults, $nl);
 
   #################################
   # namelist group: drydep_inparm #
@@ -3641,7 +3641,7 @@ sub write_output_files {
   # CLM component
   my @groups;
   {
-    @groups = qw(elm_inparm ndepdyn_nml pdepdyn_nml popd_streams light_streams lai_streams elm_canopyhydrology_inparm
+    @groups = qw(elm_inparm ndepdyn_nml pdepdyn_nml popd_streams light_streams lai_streams urbantv_streams elm_canopyhydrology_inparm
                  elm_soilhydrology_inparm dynamic_subgrid finidat_consistency_checks dynpft_consistency_checks
                  elmu_inparm elm_soilstate_inparm elm_pflotran_inparm betr_inparm elm_mosart);
     #@groups = qw(elm_inparm elm_canopyhydrology_inparm elm_soilhydrology_inparm

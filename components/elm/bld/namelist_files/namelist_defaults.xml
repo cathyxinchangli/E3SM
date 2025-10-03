@@ -983,9 +983,9 @@ this mask will have smb calculated over the entire global land surface
 <stream_year_last_urbantv  sim_year="constant" sim_year_range="1850-2000" >2106</stream_year_last_urbantv>
 
 <stream_fldfilename_urbantv hgrid="0.9x1.25" urban_explicit_ac=".false."
->lnd/clm2/urbandata/CLM50_tbuildmax_Oleson_2016_0.9x1.25_simyr1849-2106_c160923.nc</stream_fldfilename_urbantv>
+>/global/homes/e/erick/m5086/datasets/timevarying_data/varying_tmax_oleson/CLM50_tbuildmax_Oleson_2016_0.9x1.25_simyr1849-2106_c160923.nc</stream_fldfilename_urbantv>
 <stream_fldfilename_urbantv hgrid="0.9x1.25" urban_explicit_ac=".true."
->/glade/work/xinchang/02_Explicit_AC_Adoption/02_data_present_day/CTSM52_urbantv_Li_2024_0.9x1.25_simyr1849-2106_c20230621.nc</stream_fldfilename_urbantv>
+>/global/homes/e/erick/m5086/datasets/timevarying_data/with_adoption_rate/CTSM52_urbantv_Li_2024_0.9x1.25_simyr1849-2106_c20230621.nc</stream_fldfilename_urbantv>
 
 
 <urbantvmapalgo >nn</urbantvmapalgo>
