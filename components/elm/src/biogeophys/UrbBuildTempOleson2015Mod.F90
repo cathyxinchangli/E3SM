@@ -17,8 +17,8 @@ module UrbBuildTempOleson2015Mod
   use atm2lndType       , only : atm2lnd_type
   use LandunitType      , only : lun_pp                
   use ColumnType        , only : col_pp       
-  use LandunitDataType  , only : lun_es, lun_ef    
-  use ColumnDataType    , only : col_es     
+  use LandunitDataType  , only : lun_es, lun_ef, lun_ws, lun_wf
+  use ColumnDataType    , only : col_es, col_wf
   !
   ! !PUBLIC TYPES:
   implicit none
@@ -42,7 +42,8 @@ contains
 !
 ! !INTERFACE:
   subroutine BuildingTemperature (bounds, num_urbanl, filter_urbanl, num_nolakec, &
-                                  filter_nolakec, tk, urbanparams_vars, atm2lnd_vars, urbantv_vars)
+                                  filter_nolakec, num_urbanc, filter_urbanc, &
+                                  tk, urbanparams_vars, atm2lnd_vars, urbantv_vars)
 !
 ! !DESCRIPTION:
 ! Solve for t_building, inner surface temperatures of roof, sunw, shdw, and floor temperature
@@ -205,19 +206,22 @@ contains
     use elm_varcon      , only : rair, cpair, sb, hcv_roof, hcv_roof_enhanced, &
                                  hcv_floor, hcv_floor_enhanced, hcv_sunw, hcv_shdw, &
                                  em_roof_int, em_floor_int, em_sunw_int, em_shdw_int, &
-                                 dz_floor, dens_floor, cp_floor, vent_ach
-    use column_varcon   , only : icol_roof, icol_sunwall, icol_shadewall
+                                 dz_floor, dens_floor, cp_floor, vent_ach, &
+                                 rh_building_max, hvap,rwat, cpwvap
+    use column_varcon   , only : icol_roof, icol_sunwall, icol_shadewall, icol_road_imperv
     use elm_varctl      , only : iulog
     use abortutils      , only : endrun
     use elm_varpar      , only : nlevurb, nlevsno, nlevgrnd
     use UrbanParamsType , only : urban_hac, urban_hac_off, urban_hac_on, urban_wasteheat_on, urban_explicit_ac
-    
+    use QSatMod         , only : QSat
     ! 
 ! !ARGUMENTS:
     implicit none
     type(bounds_type), intent(in) :: bounds                   ! bounds
     integer , intent(in)  :: num_nolakec                      ! number of column non-lake points in column filter
     integer , intent(in)  :: filter_nolakec(:)                ! column filter for non-lake points
+    integer , intent(in)  :: num_urbanc                       ! number of column urban points in column filter
+    integer , intent(in)  :: filter_urbanc(:)                 ! column filter for urban points
     integer , intent(in)  :: num_urbanl                       ! number of urban landunits in clump
     integer , intent(in)  :: filter_urbanl(:)                 ! urban landunit filter
     real(r8), intent(in)  :: tk(bounds%begc: , -nlevsno+1: )  ! thermal conductivity (W m-1 K-1) [col, j]
@@ -236,7 +240,10 @@ contains
     real(r8) :: t_floor_bef(bounds%begl:bounds%endl)       ! floor temperature at previous time step (K)              
     real(r8) :: t_building_bef(bounds%begl:bounds%endl)    ! internal building air temperature at previous time step [K]
     real(r8) :: t_building_bef_hac(bounds%begl:bounds%endl)! internal building air temperature before applying HAC [K]
+    real(r8) :: q_building_bef(bounds%begl:bounds%endl)    ! internal building air specific humidity at previous time step (kg/kg)
+    real(r8) :: q_building_bef_hac(bounds%begl:bounds%endl)! internal building air specific humidity before applying HAC (kg/kg)
     real(r8) :: eflx_urban_ac_sat(bounds%begl:bounds%endl) ! urban air conditioning flux under AC adoption saturation (W/m**2)
+    real(r8) :: eflx_urban_ac_sat_lat(bounds%begl:bounds%endl) ! urban air conditioning latent heat flux under AC adoption saturation (W/m**2)
     real(r8) :: hcv_roofi(bounds%begl:bounds%endl)         ! roof convective heat transfer coefficient (W m-2 K-1)
     real(r8) :: hcv_sunwi(bounds%begl:bounds%endl)         ! sunwall convective heat transfer coefficient (W m-2 K-1)
     real(r8) :: hcv_shdwi(bounds%begl:bounds%endl)         ! shadewall convective heat transfer coefficient (W m-2 K-1)
@@ -249,6 +256,7 @@ contains
     real(r8) :: cp_floori(bounds%begl:bounds%endl)         ! concrete floor volumetric heat capacity (J m-3 K-1)
     real(r8) :: cv_floori(bounds%begl:bounds%endl)         ! intermediate calculation for concrete floor (W m-2 K-1)
     real(r8) :: rho_dair(bounds%begl:bounds%endl)          ! density of dry air at standard pressure and t_building (kg m-3)
+    real(r8) :: cp_hair(bounds%begl:bounds%endl)           ! specific heat capacity of indoor humid air (J kg-1 K-1)
     real(r8) :: vf_rf(bounds%begl:bounds%endl)             ! view factor of roof for floor (-)
     real(r8) :: vf_fr(bounds%begl:bounds%endl)             ! view factor of floor for roof (-)
     real(r8) :: vf_wf(bounds%begl:bounds%endl)             ! view factor of wall for floor (-)
@@ -299,6 +307,15 @@ contains
                                            ! on exit, if info = 0, the n-by-nrhs solution matrix x
     integer  :: info                       ! exit information for LAPACK routine dgesv
     integer  :: ipiv(neq)                  ! the pivot indices that define the permutation matrix P
+    real(r8) :: q_building_max             ! maximum internal building air specific humidity determined from rh_building_max (kg/kg)
+    real(r8) :: qsat_building_max          ! maximum internal building air saturated specific humidity/mixing ratio used to determing q_building_max from rh_building_max (kg/kg)
+    real(r8) :: qsat_building              ! internal building air saturated specific humidity/mixing ratio used to calculate rh_building (kg/kg)
+    real(r8) :: esat_building              ! internal building air saturated vapor pressure used to calculate p_vapor (Pa)
+    real(r8) :: p_vapor                    ! internal building air partial pressure of water vapor (Pa)
+    real(r8) :: esatdT_building, qsatdT_building  !d(esat)/d(T) and d(qs)/d(T).  Only used as they are required outputs of QSat subroutine
+    real(r8) :: qtot_condensate(bounds%begl:bounds%endl) ! total condensed water due to dehumidification per building area (kg m-2)
+    real(r8) :: eflx_urban_ac_lat_derived(bounds%begl:bounds%endl) ! urban air conditioning latent heat flux derived from condensate output, for error check (W m-2)
+    real(r8) :: err_eflx_urban_ac_lat(bounds%begl:bounds%endl) ! Difference in urban air conditioning latent heat flux for error check (
 !EOP
 !-----------------------------------------------------------------------
 
@@ -315,6 +332,7 @@ contains
     ht_roof           => lun_pp%ht_roof                       , & ! Input:  [real(r8) (:)]  height of urban roof (m) 
     canyon_hwr        => lun_pp%canyon_hwr                    , & ! Input:  [real(r8) (:)]  ratio of building height to street hwidth (-)
     wtlunit_roof      => lun_pp%wtlunit_roof                  , & ! Input:  [real(r8) (:)]  weight of roof with respect to landunit
+    wtroad_perv       => lun_pp%wtroad_perv                   , & ! Input:  [real(r8) (:)]  weight of pervious road column to total road (-)
     urbpoi            => lun_pp%urbpoi                        , & ! Input:  [logical (:)]  true => landunit is an urban point
 
     taf               => lun_es%taf                        , & ! Input:  [real(r8) (:)]  urban canopy air temperature (K)
@@ -329,10 +347,15 @@ contains
     t_building_max    => urbantv_vars%t_building_max       , & ! Input:  [real(r8) (:)]  maximum internal building air temperature (K)  
     ! t_building_max    => urbanparams_vars%t_building_max   , & ! Input:  [real(r8) (:)]  maximum internal building air temperature (K)  ! REMOVE
     t_building_min    => urbanparams_vars%t_building_min   , & ! Input:  [real(r8) (:)]  minimum internal building air temperature (K)
-
+    qaf               => lun_ws%qaf        ,& ! Input: [real(r8) (:)]  urban canopy air specific humidity (kg/kg)
+    q_building        => lun_ws%q_building ,& ! InOut: [real(r8) (:)]  internal building air specific humidity (kg/kg)
+    rh_building       => lun_ws%rh_building,& ! InOut: [real(r8) (:)]  internal building air relative humidity (%)
     eflx_building     => lun_ef%eflx_building , & ! Output:  [real(r8) (:)]  building heat flux from change in interior building air temperature (W/m**2)
     eflx_urban_ac     => lun_ef%eflx_urban_ac , & ! Output:  [real(r8) (:)]  urban air conditioning flux (W/m**2)
-    eflx_urban_heat   => lun_ef%eflx_urban_heat & ! Output:  [real(r8) (:)]  urban heating flux (W/m**2)
+    eflx_urban_ac_sen => lun_ef%eflx_urban_ac_sen,& ! Output: [real(r8) (:)] sensible heat component of urban air conditioning flux (W/m**2)
+    eflx_urban_heat   => lun_ef%eflx_urban_heat, & ! Output:  [real(r8) (:)]  urban heating flux (W/m**2)
+    qflx_condensate_from_ac => col_wf%qflx_condensate_from_ac, & ! Output: [real(r8) (:)] condensed water flux due to dehumidification for impervious road area (mm/s)
+    qflx_condensate_from_ac_lu => lun_wf%qflx_condensate_from_ac & ! Output: [real(r8) (:)] condensed water flux due to dehumidification for urban area by land unit (mm/s)
     )
 
     ! Get step size
@@ -355,6 +378,7 @@ contains
          t_shdw_inner_bef(l)  = t_shdw_inner(l)
          t_floor_bef(l)       = t_floor(l)
          t_building_bef(l)    = t_building(l)
+         q_building_bef(l)    = q_building(l)
          if (t_roof_inner_bef(l) .le. t_building_bef(l)) then
            hcv_roofi(l) = hcv_roof_enhanced
          else
@@ -379,6 +403,14 @@ contains
          cv_floori(l) = (dz_floori(l) * cp_floori(l)) / dtime
          ! density of dry air at surface pressure and t_building
          rho_dair(l) = forc_pbot(g) / (rair*t_building_bef(l))
+         ! Saturated vapor pressure at t_building (Pa)
+         call QSat(t_building_bef_hac(l), forc_pbot(g), esat_building, esatdT_building,qsat_building, qsatdT_building )
+         ! Partial pressure of water vapor (Pa)
+         p_vapor = min(1._r8, q_building_bef(l) / qsat_building ) * esat_building
+         ! Density of HUMID air at bottom layer atmos. forcing pressure and t_building (kg m-3)
+         rho_dair(l) = ( forc_pbot(g) - p_vapor ) / ( rair * t_building_bef(l) ) + p_vapor / ( rwat * t_building_bef(l))
+         ! Specific heat capacity of HUMID air (J/kg/K)
+         cp_hair(l) = cpair + cpwvap * q_building_bef(l)
          ! Building height to building width ratio
          building_hwr(l) = canyon_hwr(l)*(1._r8-wtlunit_roof(l))/wtlunit_roof(l)
        end if
@@ -642,15 +674,15 @@ contains
 
          a(5,4) = - 0.5_r8*hcv_floori(l)
 
-         a(5,5) =  ((ht_roof(l)*rho_dair(l)*cpair)/dtime) + &
-                   ((ht_roof(l)*vent_ach)/3600._r8)*rho_dair(l)*cpair + &
+         a(5,5) =  ((ht_roof(l)*rho_dair(l)*cp_hair(l))/dtime) + &
+                   ((ht_roof(l)*vent_ach)/3600._r8)*rho_dair(l)*cp_hair(l) + &
                    0.5_r8*hcv_roofi(l) + &
                    0.5_r8*hcv_sunwi(l)*building_hwr(l) + &
                    0.5_r8*hcv_shdwi(l)*building_hwr(l) + &
                    0.5_r8*hcv_floori(l)
 
-         result(5) = (ht_roof(l)*rho_dair(l)*cpair/dtime)*t_building_bef(l) &
-                      + ((ht_roof(l)*vent_ach)/3600._r8)*rho_dair(l)*cpair*taf(l) &
+         result(5) = (ht_roof(l)*rho_dair(l)*cp_hair(l)/dtime)*t_building_bef(l) &
+                      + ((ht_roof(l)*vent_ach)/3600._r8)*rho_dair(l)*cp_hair(l)*taf(l) &
                       + 0.5_r8*hcv_roofi(l)*(t_roof_inner_bef(l) - t_building_bef(l)) &
                       + 0.5_r8*hcv_sunwi(l)*(t_sunw_inner_bef(l) - t_building_bef(l))*building_hwr(l) &
                       + 0.5_r8*hcv_shdwi(l)*(t_shdw_inner_bef(l) - t_building_bef(l))*building_hwr(l) &
@@ -888,8 +920,8 @@ contains
            call endrun()
          end if
 
-         enrgy_bal_buildair(l) = (ht_roof(l)*rho_dair(l)*cpair/dtime)*(t_building(l) - t_building_bef(l)) &
-                                 - ht_roof(l)*(vent_ach/3600._r8)*rho_dair(l)*cpair*(taf(l) - t_building(l)) &
+         enrgy_bal_buildair(l) = (ht_roof(l)*rho_dair(l)*cp_hair(l)/dtime)*(t_building(l) - t_building_bef(l)) &
+                                 - ht_roof(l)*(vent_ach/3600._r8)*rho_dair(l)*cp_hair(l)*(taf(l) - t_building(l)) &
                                  - 0.5_r8*hcv_roofi(l)*(t_roof_inner(l) - t_building(l)) &
                                  - 0.5_r8*hcv_roofi(l)*(t_roof_inner_bef(l) - t_building_bef(l)) &
                                  - 0.5_r8*hcv_sunwi(l)*(t_sunw_inner(l) - t_building(l))*building_hwr(l) &
@@ -903,6 +935,16 @@ contains
            write (iulog,*) 'elm model is stopping'
            call endrun()
          end if
+
+         ! eflx_ventilation(l) = ...  SHOULD BE HERE
+       end if
+    end do
+
+    ! Update internal building air specific humidity
+    do fl = 1,num_urbanl
+       l = filter_urbanl(fl)
+       if (urbpoi(l)) then
+          q_building(l) = qaf(l) * (vent_ach/3600._r8 * dtime) + q_building_bef(l) * (1 - vent_ach/3600._r8 * dtime)
        end if
     end do
 
@@ -912,38 +954,120 @@ contains
 
     do fl = 1,num_urbanl
        l = filter_urbanl(fl)
+       g = lun_pp%gridcell(l)
        if (urbpoi(l)) then
           if (trim(urban_hac) == urban_hac_on .or. trim(urban_hac) == urban_wasteheat_on) then
             t_building_bef_hac(l) = t_building(l)
 !           rho_dair(l) = pstd / (rair*t_building(l))
+            q_building_bef_hac(l) = q_building(l)
 
+            ! Calculate q setpoint from RH setpoint
+            call QSat(t_building_bef_hac(l), forc_pbot(g), esat_building, esatdT_building,qsat_building_max, qsatdT_building )
+            q_building_max = rh_building_max / 100._r8 * qsat_building_max
+            
             if (t_building_bef_hac(l) > t_building_max(l)) then
               if (urban_explicit_ac) then   ! use explicit ac adoption rate parameterization scheme:
+                ! Sensible heat
                 ! Here, t_building_max is the AC saturation setpoint
-                eflx_urban_ac_sat(l) = wtlunit_roof(l) * abs( (ht_roof(l) * rho_dair(l) * cpair / dtime) * t_building_max(l) &
-                                     - (ht_roof(l) * rho_dair(l) * cpair / dtime) * t_building_bef_hac(l) )
+                eflx_urban_ac_sat(l) = wtlunit_roof(l) * abs( (ht_roof(l) * rho_dair(l) * cp_hair(l) / dtime) * t_building_max(l) &
+                                     - (ht_roof(l) * rho_dair(l) * cp_hair(l) / dtime) * t_building_bef_hac(l) )
                 t_building(l) = t_building_max(l) + ( 1._r8 - p_ac(l) ) * eflx_urban_ac_sat(l) &
-                              * dtime / (ht_roof(l) * rho_dair(l) * cpair * wtlunit_roof(l))
+                              * dtime / (ht_roof(l) * rho_dair(l) * cp_hair(l) * wtlunit_roof(l))
+                eflx_urban_ac_sen(l) = p_ac(l) * eflx_urban_ac_sat(l)
+
+                ! Latent heat
+                if (q_building_bef_hac(l) > q_building_max) then
+                  ! the latent heat removed from internal building air is released to urban canyon as sensible heat.
+                  ! Humidification process for urban heating is not implemented.
+                  ! Here, q_building_max is the AC humidity setpoint under saturated adoption
+                  eflx_urban_ac_sat_lat(l) = wtlunit_roof(l) * abs( &
+                                             (ht_roof(l) * rho_dair(l) * hvap / dtime) * q_building_max &
+                                             - (ht_roof(l) * rho_dair(l) * hvap / dtime) * q_building_bef_hac(l) &
+                                             )
+                  eflx_urban_ac_sat(l) = eflx_urban_ac_sat(l) + eflx_urban_ac_sat_lat(l)
+                  q_building(l) = q_building_max + ( 1._r8 - p_ac(l) ) * eflx_urban_ac_sat_lat(l) &
+                              * dtime / (ht_roof(l) * rho_dair(l) * hvap * wtlunit_roof(l))
+
+                end if
+
                 eflx_urban_ac(l) = p_ac(l) * eflx_urban_ac_sat(l)
               else
                 t_building(l) = t_building_max(l)
-                eflx_urban_ac(l) = wtlunit_roof(l) * abs( (ht_roof(l) * rho_dair(l) * cpair / dtime) * t_building(l) &
-                                   - (ht_roof(l) * rho_dair(l) * cpair / dtime) * t_building_bef_hac(l) )
+                eflx_urban_ac_sen(l) = wtlunit_roof(l) * abs( (ht_roof(l) * rho_dair(l) * cp_hair(l) / dtime) * t_building(l) &
+                                   - (ht_roof(l) * rho_dair(l) * cp_hair(l) / dtime) * t_building_bef_hac(l) )
+                eflx_urban_ac(l) = eflx_urban_ac_sen(l) + 0._r8 ! 0._r8 is a placeholder for eflx_urban_ac_lat(l)
               end if
             
             else if (t_building_bef_hac(l) < t_building_min(l)) then
               t_building(l) = t_building_min(l)
-              eflx_urban_heat(l) = wtlunit_roof(l) * abs( (ht_roof(l) * rho_dair(l) * cpair / dtime) * t_building(l) &
-                                   - (ht_roof(l) * rho_dair(l) * cpair / dtime) * t_building_bef_hac(l) )
+              eflx_urban_heat(l) = wtlunit_roof(l) * abs( (ht_roof(l) * rho_dair(l) * cp_hair(l) / dtime) * t_building(l) &
+                                   - (ht_roof(l) * rho_dair(l) * cp_hair(l) / dtime) * t_building_bef_hac(l) )
             else
+              eflx_urban_ac_sen(l) = 0._r8
               eflx_urban_ac(l) = 0._r8
               eflx_urban_heat(l) = 0._r8
             end if
           else
+            eflx_urban_ac_sen(l) = 0._r8
             eflx_urban_ac(l) = 0._r8
             eflx_urban_heat(l) = 0._r8
           end if
-          eflx_building(l) = wtlunit_roof(l) * (ht_roof(l) * rho_dair(l)*cpair/dtime) * (t_building(l) - t_building_bef(l))
+  
+
+          eflx_building(l) = wtlunit_roof(l) * ( &
+                             (ht_roof(l) * rho_dair(l)*cp_hair(l)/dtime) * (t_building(l) - t_building_bef(l)) &
+                             + (ht_roof(l) * rho_dair(l)*hvap/dtime) * (q_building(l) - q_building_bef(l)) &
+                             )
+
+          ! Cathy [dev.15] [dev.18]
+          ! Calculate total water condensed by dehumidification, if any [kg/m2 building area].
+          qtot_condensate(l) = max(0._r8, (-q_building(l)+q_building_bef_hac(l))) * ht_roof(l) * rho_dair(l)
+          ! Cathy [dev.18.02] condensate water flux [mm/s] w.r.t. urban land unit area
+          qflx_condensate_from_ac_lu(l) = wtlunit_roof(l) * qtot_condensate(l) / dtime
+
+          ! Cathy [dev.06]
+          ! Calculate relative humidity based on specific humidity
+          call QSat(t_building(l), forc_pbot(g),  esat_building, esatdT_building,qsat_building, qsatdT_building )
+          rh_building(l) = min(100._r8, q_building(l) / qsat_building * 100._r8)
+
+        end if
+    end do
+
+
+    ! The following code block checks if the energy and water calculations from the dehumidification scheme match
+    do fl = 1,num_urbanl
+       l = filter_urbanl(fl)
+       if (urbpoi(l)) then
+          ! dehumidification energy flux calculated from condensate:
+          eflx_urban_ac_lat_derived(l) = qflx_condensate_from_ac_lu(l) * hvap
+          ! Difference in dehumidification energy flux:
+          err_eflx_urban_ac_lat(l) = eflx_urban_ac_lat_derived(l) - (eflx_urban_ac(l) - eflx_urban_ac_sen(l))
+          if (abs(err_eflx_urban_ac_lat(l)) > 1.e-5_r8 ) then
+             write (iulog,*) "eflx_urban_ac_lat_derived(l) =", eflx_urban_ac_lat_derived(l)   ! REMOVE
+             write (iulog,*) "(eflx_urban_ac(l) - eflx_urban_ac_sen(l)) =", (eflx_urban_ac(l) - eflx_urban_ac_sen(l)) ! REMOVE
+             write (iulog,*) "eflx_urban_ac(l) =", eflx_urban_ac(l) ! REMOVE
+             write (iulog,*) "eflx_urban_ac_sen(l) =", eflx_urban_ac_sen(l) ! REMOVE
+             write (iulog,*) 'urban dehumidification energy does not match condensate output,' 
+             write (iulog,*) 'error in dehumidification energy flux [W/m2 urban]: ',err_eflx_urban_ac_lat(l)
+             write (iulog,*) 'clm model is stopping'
+             call endrun()
+          end if
+       end if
+    end do
+
+    ! Cathy [dev.18.03] Start a seperate loop for this:
+    ! Assume all condensed water gets added to the roof column (that goes directly into surface runoff)
+    ! Calculate and assign water flux due to dehumidification to roof column [mm/s],
+    ! water flux to other urban columns are set to 0.
+    do fc = 1,num_urbanc
+       c = filter_urbanc(fc)
+       l = clandunit(c)
+       if (urbpoi(l)) then
+         if (ctype(c) == icol_roof) then
+           qflx_condensate_from_ac(c) = qtot_condensate(l)/dtime
+         else
+           qflx_condensate_from_ac(c) = 0._r8
+         end if
        end if
     end do
 

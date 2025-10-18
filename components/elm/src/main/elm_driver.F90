@@ -864,6 +864,7 @@ contains
        call t_startf('soiltemperature')
        call SoilTemperature(bounds_clump,                     &
             filter(nc)%num_urbanl  , filter(nc)%urbanl,       &
+            filter(nc)%num_urbanc  , filter(nc)%urbanc,       &
             filter(nc)%num_nolakec , filter(nc)%nolakec,      &
             atm2lnd_vars, urbanparams_vars, canopystate_vars, &
             solarabs_vars, soilstate_vars, energyflux_vars, urbantv_vars)

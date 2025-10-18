@@ -470,6 +470,7 @@ module ColumnDataType
     real(r8), pointer :: qflx_evap_can        (:)   => null() ! evaporation from leaves and stems (mm H2O/s) (+ = to atm)
     real(r8), pointer :: qflx_evap_tot        (:)   => null() ! col_qflx_evap_soi + col_qflx_evap_veg + qflx_tran_veg
     real(r8), pointer :: qflx_evap_grnd       (:)   => null() ! ground surface evaporation rate (mm H2O/s) [+]
+    real(r8), pointer :: qflx_condensate_from_ac(:) => null() ! condensate due to dehumidification from air-conditioning (mm H2O/S) [+]
     real(r8), pointer :: qflx_snwcp_liq       (:)   => null() ! excess rainfall due to snow capping (mm H2O /s)
     real(r8), pointer :: qflx_snwcp_ice       (:)   => null() ! excess snowfall due to snow capping (mm H2O /s)
     real(r8), pointer :: qflx_ice_runoff_xs   (:)   => null() ! solid runoff from excess ice in soil (mm H2O /s) [+]
@@ -547,6 +548,8 @@ module ColumnDataType
     real(r8), pointer :: mflx_et              (:,:) => null() ! evapotranspiration sink from all soil coontrol volumes (kg H2O /s)
     real(r8), pointer :: mflx_drain           (:,:) => null() ! drainage from groundwater table (kg H2O /s)
     real(r8), pointer :: mflx_recharge        (:)   => null() ! recharge from soil column to unconfined aquifer (kg H2O /s)
+
+    
 
   contains
     procedure, public :: Init    => col_wf_init
@@ -5762,11 +5765,12 @@ contains
   !------------------------------------------------------------------------
   ! Subroutines to initialize and clean column water flux data structure
   !------------------------------------------------------------------------
-  subroutine col_wf_init(this, begc, endc)
+  subroutine col_wf_init(this, begc, endc, is_prog_buildtemp)
     !
     ! !ARGUMENTS:
     class(column_water_flux) :: this
     integer, intent(in) :: begc,endc
+    logical, intent(in) :: is_prog_buildtemp    ! Prognostic building temp is being used
     ! !LOCAL VARIABLES:
     integer  :: l,c
     integer  :: ncells
@@ -5785,6 +5789,7 @@ contains
     allocate(this%qflx_evap_can          (begc:endc))             ; this%qflx_evap_can        (:)   = spval
     allocate(this%qflx_evap_tot          (begc:endc))             ; this%qflx_evap_tot        (:)   = spval
     allocate(this%qflx_evap_grnd         (begc:endc))             ; this%qflx_evap_grnd       (:)   = spval
+    allocate(this%qflx_condensate_from_ac(begc:endc))             ; this%qflx_condensate_from_ac(:) = 0._r8    ! REMOVE COMMENT: 0 or spval
     allocate(this%qflx_snwcp_liq         (begc:endc))             ; this%qflx_snwcp_liq       (:)   = spval
     allocate(this%qflx_snwcp_ice         (begc:endc))             ; this%qflx_snwcp_ice       (:)   = spval
     allocate(this%qflx_ice_runoff_xs     (begc:endc))             ; this%qflx_ice_runoff_xs   (:)   = 0._r8
@@ -5954,6 +5959,16 @@ contains
      call hist_addfld1d (fname='QDRAI_XS',  units='mm/s',  &
           avgflag='A', long_name='saturation excess drainage', &
            ptr_col=this%qflx_rsub_sat, c2l_scale_type='urbanf')
+
+    if (is_prog_buildtemp) then
+      this%qflx_condensate_from_ac(begc:endc) = 0.0_r8
+      call hist_addfld1d ( &
+         fname='QCOND_FROM_AC', &
+         units='mm/s',  &
+         avgflag='A', &
+         long_name='Condensed water flux from AC dehumidification', &
+         ptr_col=this%qflx_condensate_from_ac, set_nourb=0.0_r8, c2l_scale_type='urbanf', default='inactive')
+    end if
 
     this%qflx_snofrz(begc:endc) = spval
      call hist_addfld1d (fname='QSNOFRZ', units='kg/m2/s', &

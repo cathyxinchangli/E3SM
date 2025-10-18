@@ -149,7 +149,8 @@ contains
   end subroutine init_soil_temperature
 
   !-----------------------------------------------------------------------
-  subroutine SoilTemperature(bounds, num_urbanl, filter_urbanl, num_nolakec, filter_nolakec, &
+  subroutine SoilTemperature(bounds, num_urbanl, filter_urbanl, num_urbanc, filter_urbanc, &
+       num_nolakec, filter_nolakec, &
        atm2lnd_vars, urbanparams_vars, canopystate_vars, &
        solarabs_vars, soilstate_vars, energyflux_vars, urbantv_vars)
     !
@@ -190,6 +191,8 @@ contains
     integer                , intent(in)    :: filter_nolakec(:)                  ! column filter for non-lake points
     integer                , intent(in)    :: num_urbanl                         ! number of urban landunits in clump
     integer                , intent(in)    :: filter_urbanl(:)                   ! urban landunit filter
+    integer                ,  intent(in)   :: num_urbanc        ! number of urban columns in clump
+    integer                ,  intent(in)   :: filter_urbanc(:)  ! urban column filter
     type(atm2lnd_type)     , intent(in)    :: atm2lnd_vars
     type(urbanparams_type) , intent(in)    :: urbanparams_vars
     type(urbantv_type)     , intent(in)    :: urbantv_vars
@@ -659,6 +662,7 @@ contains
            dhsdT(bounds%begc:bounds%endc), soilstate_vars, energyflux_vars, dtime)
       if ( IsProgBuildTemp() )then
          call BuildingTemperature(bounds, num_urbanl, filter_urbanl, num_nolakec, filter_nolakec, &
+                                  num_urbanc, filter_urbanc, &
                                   tk(bounds%begc:bounds%endc, :), urbanparams_vars, atm2lnd_vars, urbantv_vars)
       end if
       do fc = 1,num_nolakec

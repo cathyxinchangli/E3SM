@@ -13,6 +13,7 @@ module elm_varcon
   use shr_const_mod , only: SHR_CONST_RHOICE,SHR_CONST_TKFRZ,SHR_CONST_REARTH
   use shr_const_mod , only: SHR_CONST_PDB, SHR_CONST_PI, SHR_CONST_CDAY
   use shr_const_mod , only: SHR_CONST_RGAS, SHR_CONST_PSTD
+  use shr_const_mod , only: SHR_CONST_CPWV
   use elm_varpar    , only: numrad, nlevgrnd, nlevlak, nlevdecomp_full
   use elm_varpar    , only: ngases
   use elm_varpar    , only: nlayer
@@ -52,6 +53,7 @@ module elm_varcon
   real(r8) :: cpliq  = SHR_CONST_CPFW                       ! Specific heat of water [J/kg-K]
   real(r8) :: cpice  = SHR_CONST_CPICE                      ! Specific heat of ice [J/kg-K]
   real(r8) :: cpair  = SHR_CONST_CPDAIR                     ! specific heat of dry air [J/kg/K]
+  real(r8), public :: cpwvap = SHR_CONST_CPWV                       ! specific heat of water vapor [J/kg/K]
   real(r8) :: hvap   = SHR_CONST_LATVAP                     ! Latent heat of evap for water [J/kg]
   real(r8) :: hsub   = SHR_CONST_LATSUB                     ! Latent heat of sublimation    [J/kg]
   real(r8) :: hfus   = SHR_CONST_LATICE                     ! Latent heat of fusion for ice [J/kg]
@@ -165,7 +167,8 @@ module elm_varcon
   real(r8), public, parameter :: sh_floor = 880._r8     ! specific heat of floor - concrete (Salmanca et al. 2010, TAC) (J kg-1 K-1)
   real(r8), public :: cp_floor = dens_floor*sh_floor    ! volumetric heat capacity of floor - concrete (Salmanca et al. 2010, TAC) (J m-3 K-1)
   real(r8), public :: vent_ach = 0.3                    ! ventilation rate (air exchanges per hour)
-
+  real(r8), public :: rh_building_max = 60._r8          ! maximum internal building air relative humidity (%)
+  
   real(r8), public :: wasteheat_limit = 100._r8         ! limit on wasteheat (W/m2)
 
   !------------------------------------------------------------------

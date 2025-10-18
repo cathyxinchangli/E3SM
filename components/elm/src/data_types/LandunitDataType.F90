@@ -52,6 +52,7 @@ module LandunitDataType
     real(r8), pointer :: eflx_traffic      (:)   ! traffic sensible heat flux (W/m**2)
     real(r8), pointer :: eflx_wasteheat    (:)   ! sensible heat flux from domestic heating/cooling sources of waste heat (W/m**2)
     real(r8), pointer :: eflx_urban_ac     (:)   ! urban air conditioning flux (W/m**2) 
+    real(r8), pointer :: eflx_urban_ac_sen (:)   ! sensible heat component of air conditioning flux (W/m**2)
     real(r8), pointer :: eflx_heat_from_ac (:)   ! sensible heat flux to be put back into canyon due to removal by AC (W/m**2)
     real(r8), pointer :: eflx_urban_heat   (:)   ! urban heating flux (W/m**2)
     real(r8), pointer :: eflx_building     (:)   ! building heat flux from change in interior building air temperature (W/m**2)
@@ -68,6 +69,8 @@ module LandunitDataType
   type, public :: landunit_water_state
     ! temperature variables
     real(r8), pointer :: qaf               (:)   ! urban canopy air specific humidity (kg H2O/kg moist air)
+    real(r8), pointer :: q_building        (:)   ! lun internal building air specific humidity (kg/kg)
+    real(r8), pointer :: rh_building       (:)   ! lun internal building air relative humidity (%) 
 
   contains
     procedure, public :: Init    => lun_ws_init
@@ -75,15 +78,31 @@ module LandunitDataType
     procedure, public :: Clean   => lun_ws_clean
   end type landunit_water_state
 
+
+    !-----------------------------------------------------------------------
+  ! Define the data structure that holds water flux information at the landunit level.
+  !-----------------------------------------------------------------------
+  type, public :: landunit_water_flux
+    ! temperature variables
+    real(r8), pointer :: qflx_condensate_from_ac    (:)   ! urban canopy air specific humidity (kg H2O/kg moist air)
+
+  contains
+    procedure, public :: Init    => lun_wf_init
+    procedure, public :: Restart => lun_wf_restart
+    procedure, public :: Clean   => lun_wf_clean
+  end type landunit_water_flux
+
   !-----------------------------------------------------------------------
   ! declare the public instances of landunit-level data types
   !-----------------------------------------------------------------------
   type(landunit_energy_state)  , public, target :: lun_es    ! landunit energy state
   type(landunit_energy_flux)  , public, target :: lun_ef    ! landunit energy flux
   type(landunit_water_state)  , public, target :: lun_ws    ! landunit water state
+  type(landunit_water_flux)  , public, target :: lun_wf    ! landunit water flux
   !$acc declare create(lun_es)
   !$acc declare create(lun_ef)
   !$acc declare create(lun_ws)
+  !$acc declare create(lun_wf)
   !------------------------------------------------------------------------
 
 contains
@@ -312,6 +331,7 @@ contains
     allocate( this%eflx_traffic        (begl:endl))             ; this%eflx_traffic        (:)   = spval
     allocate( this%eflx_wasteheat      (begl:endl))             ; this%eflx_wasteheat      (:)   = spval
     allocate( this%eflx_urban_ac       (begl:endl))             ; this%eflx_urban_ac       (:)   = spval
+    allocate( this%eflx_urban_ac_sen   (begl:endl))             ; this%eflx_urban_ac_sen   (:)   = spval
     allocate( this%eflx_urban_heat     (begl:endl))             ; this%eflx_urban_heat     (:)   = spval
     allocate( this%eflx_building       (begl:endl))             ; this%eflx_building       (:)   = spval
 
@@ -328,6 +348,11 @@ contains
       call hist_addfld1d (fname='URBAN_AC', units='W/m^2',  &
                avgflag='A', long_name='urban air conditioning flux', &
                ptr_lunit=this%eflx_urban_ac, set_nourb=0._r8, l2g_scale_type='unity')
+
+      this%eflx_urban_ac_sen(begl:endl) = spval
+      call hist_addfld1d (fname='URBAN_AC_SEN', units='W/m^2',  &
+            avgflag='A', long_name='sensible heat component of urban air conditioning flux', &
+            ptr_lunit=this%eflx_urban_ac_sen, set_nourb=0._r8, l2g_scale_type='unity')
 
       this%eflx_urban_heat(begl:endl) = spval
       call hist_addfld1d (fname='URBAN_HEAT', units='W/m^2',  &
@@ -347,12 +372,14 @@ contains
           if ( is_prog_buildtemp )then
              this%eflx_building(l)   = 0._r8
              this%eflx_urban_ac(l)   = 0._r8
+             this%eflx_urban_ac_sen(l)= 0._r8
              this%eflx_urban_heat(l) = 0._r8
           end if
        else
           if ( is_prog_buildtemp )then
              this%eflx_building(l)   = 0._r8
              this%eflx_urban_ac(l)   = 0._r8
+             this%eflx_urban_ac_sen(l)= 0._r8
              this%eflx_urban_heat(l) = 0._r8
           end if
 
@@ -453,11 +480,12 @@ contains
   !------------------------------------------------------------------------
   ! Subroutines to initialize and clean landunit water state data structure
   !------------------------------------------------------------------------
-  subroutine lun_ws_init(this, begl, endl)
+  subroutine lun_ws_init(this, begl, endl, is_prog_buildtemp)
     !
     ! !ARGUMENTS:
     class(landunit_water_state) :: this
     integer, intent(in) :: begl,endl
+    logical, intent(in) :: is_prog_buildtemp    ! Prognostic building temp is being used
     !------------------------------------------------------------------------
     ! !LOCAL VARIABLES:
     integer :: l                        ! indices
@@ -466,6 +494,30 @@ contains
     ! allocate for each member of lun_ws
     !-----------------------------------------------------------------------
     allocate(this%qaf          (begl:endl))               ; this%qaf         (:)   = spval
+    allocate(this%q_building   (begl:endl))               ; this%q_building  (:)   = spval   ! is it necessary to initialize with spval ?
+    allocate(this%rh_building  (begl:endl))               ; this%rh_building (:)   = spval     ! ! is it necessary to initialize with spval ? it was NaN cathy CESM code
+
+    !-----------------------------------------------------------------------
+    ! initialize history fields for select members of lun_ws
+    !-----------------------------------------------------------------------
+    if ( is_prog_buildtemp ) then
+       this%q_building(begl:endl) = spval     ! it was already initialized with spval above, so may not be neccesary
+       call hist_addfld1d ( &
+            fname='QBUILD', &
+            units='kg/kg',  &
+            avgflag='A', &
+            long_name='internal urban building air specific humidity', &
+            ptr_lunit=this%q_building, l2g_scale_type='unity', set_nourb=spval)   !set_nourb=0._r8  instead of set_nourb=spval, so in agreement with URBAN_AC and URBAN_HEAT
+       
+       this%rh_building(begl:endl) = spval    ! it was already initialized with spval above, so may not be neccesary
+       call hist_addfld1d ( &
+            fname='RHBUILD', &                     ! in CESM code this variable does not depend on is_prog_buildtemp
+            units='%',  &
+            avgflag='A', &
+            long_name='Internal urban building air relative humidity', &
+            ptr_lunit=this%rh_building, set_nourb=spval, default='inactive')
+
+    end if
 
 
     !-----------------------------------------------------------------------
@@ -483,21 +535,35 @@ contains
        end if
     end do
 
+    ! Initialize internal building specific humidity (following example above and t_building_max in TemperatureType.F90)
+    if ( is_prog_buildtemp ) then
+       do l = begl, endl
+          if (lun_pp%urbpoi(l)) then
+             this%q_building(l) = this%qaf(l) ! set to urban canopy specific humidity
+          end if
+       end do
+    end if
+    
+
+
   end subroutine lun_ws_init
 
   !------------------------------------------------------------------------
-   subroutine lun_ws_restart(this, bounds, ncid, flag)
+   subroutine lun_ws_restart(this, bounds, ncid, flag, is_prog_buildtemp)
      !
      ! !DESCRIPTION:
      ! Read/Write landunit water state information to/from restart file.
      !
      ! !USES:
+     use spmdMod       , only : masterproc
+     use elm_varctl    , only : iulog
      !
      ! !ARGUMENTS:
      class(landunit_water_state)      :: this
      type(bounds_type), intent(in)    :: bounds
      type(file_desc_t), intent(inout) :: ncid
      character(len=*) , intent(in)    :: flag
+     logical, intent(in) :: is_prog_buildtemp    ! Prognostic building temp is being used
      !
      ! !LOCAL VARIABLES:
      logical :: readvar   ! determine if variable is on initial file
@@ -506,6 +572,21 @@ contains
      call restartvar(ncid=ncid, flag=flag, varname='qaf', xtype=ncd_double, dim1name='landunit',                       &
           long_name='urban canopy specific humidity', units='kg/kg',                                                   &
           interpinic_flag='interp', readvar=readvar, data=this%qaf)
+
+     if ( is_prog_buildtemp ) then
+       ! landunit type physical state variable - q_building
+       call restartvar(ncid=ncid, flag=flag, &
+            varname='q_building', &
+            xtype=ncd_double, dim1name='landunit', &
+            long_name='internal building air specific humidity', &
+            units='kg/kg', &
+            interpinic_flag='interp', readvar=readvar, data=this%q_building)
+       if (flag=='read' .and. .not. readvar) then
+          if (masterproc) write(iulog,*) "can't find q_building in initial file..."
+          if (masterproc) write(iulog,*) "Initialize q_building to qaf"
+          this%q_building(bounds%begl:bounds%endl) = this%qaf(bounds%begl:bounds%endl)
+       end if
+    end if
 
      end subroutine lun_ws_restart
 
@@ -516,10 +597,85 @@ contains
     class(landunit_water_state) :: this
     !------------------------------------------------------------------------
     deallocate(this%qaf)
+    deallocate(this%q_building)
+    deallocate(this%rh_building)
 
   end subroutine lun_ws_clean
 
 
+
+
+  !------------------------------------------------------------------------
+  ! Subroutines to initialize and clean landunit water flux data structure
+  !------------------------------------------------------------------------
+  subroutine lun_wf_init(this, begl, endl, is_prog_buildtemp)
+    !
+    ! !ARGUMENTS:
+    class(landunit_water_flux) :: this
+    integer, intent(in) :: begl,endl
+    logical, intent(in) :: is_prog_buildtemp    ! Prognostic building temp is being used
+    !------------------------------------------------------------------------
+    ! !LOCAL VARIABLES:
+    integer :: l                        ! indices
+
+    !-----------------------------------------------------------------------
+    ! allocate for each member of lun_wf
+    !-----------------------------------------------------------------------
+    allocate(this%qflx_condensate_from_ac (begl:endl))         ; this%qflx_condensate_from_ac(:)   = 0.0_r8 ! REMOVE COMMENT !spval     ! ! is it necessary to initialize with spval ? it was NaN cathy CESM code
+
+    !-----------------------------------------------------------------------
+    ! initialize history fields for select members of lun_wf
+    !-----------------------------------------------------------------------
+    if (is_prog_buildtemp) then     ! REMOVE COMMENT added not in cathy code
+      this%qflx_condensate_from_ac(begl:endl) = 0.0_r8   ! REMOVE COMMENT. it was already initialized to 0, so can we remove this
+      call hist_addfld1d ( &
+            fname='QCOND_FROM_AC_LUN', &
+            units='mm/s',  &
+            avgflag='A', &
+            long_name='Condensed water flux from AC dehumidification (lun var)', &
+            ptr_lunit=this%qflx_condensate_from_ac, set_nourb=0.0_r8, l2g_scale_type='unity') !, default='inactive')
+    end if
+
+
+    !-----------------------------------------------------------------------
+    ! cold-start initial conditions for lun_wf
+    !-----------------------------------------------------------------------    
+
+
+  end subroutine lun_wf_init
+
+  !------------------------------------------------------------------------
+   subroutine lun_wf_restart(this, bounds, ncid, flag, is_prog_buildtemp)
+     !
+     ! !DESCRIPTION:
+     ! Read/Write landunit water flux information to/from restart file.
+     !
+     ! !USES:
+     use spmdMod       , only : masterproc
+     use elm_varctl    , only : iulog
+     !
+     ! !ARGUMENTS:
+     class(landunit_water_flux)      :: this
+     type(bounds_type), intent(in)    :: bounds
+     type(file_desc_t), intent(inout) :: ncid
+     character(len=*) , intent(in)    :: flag
+     logical, intent(in) :: is_prog_buildtemp    ! Prognostic building temp is being used
+     !
+     ! !LOCAL VARIABLES:
+     logical :: readvar   ! determine if variable is on initial file
+     !-----------------------------------------------------------------------
+      
+  end subroutine lun_wf_restart
+
+  !------------------------------------------------------------------------
+  subroutine lun_wf_clean(this)
+    !
+    ! !ARGUMENTS:
+    class(landunit_water_flux) :: this
+    !------------------------------------------------------------------------
+    deallocate(this%qflx_condensate_from_ac)
+
+  end subroutine lun_wf_clean
 
 
 end module LandunitDataType
