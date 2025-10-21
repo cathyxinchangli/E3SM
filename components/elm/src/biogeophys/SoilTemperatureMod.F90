@@ -245,7 +245,7 @@ contains
          dz                      => col_pp%dz                                  , & ! Input:  [real(r8) (:,:) ]  layer depth (m)
          z                       => col_pp%z                                   , & ! Input:  [real(r8) (:,:) ]  layer thickness (m)
          ctype                   => col_pp%itype                               , & ! Input:  [integer (:)    ]  column type
-         t_building_max          => urbantv_vars%t_building_max             , & ! Input:  [real(r8) (:)   ]  maximum internal building air temperature [K]   ! REMOVE (COMMENT LINE) MAYBE TO TEST CODE
+         t_building_max          => urbantv_vars%t_building_max             , & ! Input:  [real(r8) (:)   ]  maximum internal building air temperature [K]   
          ! t_building_max          => urbanparams_vars%t_building_max         , & ! Input:  [real(r8) (:)   ]  maximum internal building temperature (K)     ! REMOVE
          t_building_min          => urbanparams_vars%t_building_min         , & ! Input:  [real(r8) (:)   ]  minimum internal building temperature (K)
 

@@ -227,7 +227,7 @@ contains
     real(r8), intent(in)  :: tk(bounds%begc: , -nlevsno+1: )  ! thermal conductivity (W m-1 K-1) [col, j]
     type(urbanparams_type), intent(in)    :: urbanparams_vars ! urban parameters
     type(atm2lnd_type)    , intent(in)    :: atm2lnd_vars     ! forcing variables from atmosphere
-    type(urbantv_type)    , intent(in)    :: urbantv_vars     ! urban time varying variables   ! REMOVE (COMMENT LINE) MAYBE FOR TESTING WITH DEFAULT
+    type(urbantv_type)    , intent(in)    :: urbantv_vars     ! urban time varying variables   
 !
 ! !LOCAL VARIABLES:
     integer, parameter :: neq = 5          ! number of equation/unknowns
@@ -343,9 +343,9 @@ contains
     t_shdw_inner      => lun_es%t_shdw_inner               , & ! InOut:  [real(r8) (:)]  shadewall inside surface temperature (K)
     t_floor           => lun_es%t_floor                    , & ! InOut:  [real(r8) (:)]  floor temperature (K)
     t_building        => lun_es%t_building                 , & ! InOut:  [real(r8) (:)]  internal building air temperature (K)
-    p_ac              => urbantv_vars%p_ac                 , & ! Input:  [real(r8) (:)]  air-conditioning penetration rate (a fraction between 0 and 1)  ! REMOVE (COMMENT LINE) MAYBE FOR TESTING WITH DEFAULT
+    p_ac              => urbantv_vars%p_ac                 , & ! Input:  [real(r8) (:)]  air-conditioning penetration rate (a fraction between 0 and 1)  
     t_building_max    => urbantv_vars%t_building_max       , & ! Input:  [real(r8) (:)]  maximum internal building air temperature (K)  
-    ! t_building_max    => urbanparams_vars%t_building_max   , & ! Input:  [real(r8) (:)]  maximum internal building air temperature (K)  ! REMOVE
+    ! t_building_max    => urbanparams_vars%t_building_max   , & ! Input:  [real(r8) (:)]  maximum internal building air temperature (K) 
     t_building_min    => urbanparams_vars%t_building_min   , & ! Input:  [real(r8) (:)]  minimum internal building air temperature (K)
     qaf               => lun_ws%qaf        ,& ! Input: [real(r8) (:)]  urban canopy air specific humidity (kg/kg)
     q_building        => lun_ws%q_building ,& ! InOut: [real(r8) (:)]  internal building air specific humidity (kg/kg)
@@ -401,8 +401,6 @@ contains
          cp_floori(l) = cp_floor
          ! Intermediate calculation for concrete floor (W m-2 K-1)
          cv_floori(l) = (dz_floori(l) * cp_floori(l)) / dtime
-         ! density of dry air at surface pressure and t_building
-         rho_dair(l) = forc_pbot(g) / (rair*t_building_bef(l))
          ! Saturated vapor pressure at t_building (Pa)
          call QSat(t_building_bef_hac(l), forc_pbot(g), esat_building, esatdT_building,qsat_building, qsatdT_building )
          ! Partial pressure of water vapor (Pa)
@@ -1019,13 +1017,11 @@ contains
                              + (ht_roof(l) * rho_dair(l)*hvap/dtime) * (q_building(l) - q_building_bef(l)) &
                              )
 
-          ! Cathy [dev.15] [dev.18]
           ! Calculate total water condensed by dehumidification, if any [kg/m2 building area].
           qtot_condensate(l) = max(0._r8, (-q_building(l)+q_building_bef_hac(l))) * ht_roof(l) * rho_dair(l)
-          ! Cathy [dev.18.02] condensate water flux [mm/s] w.r.t. urban land unit area
+          ! condensate water flux [mm/s] w.r.t. urban land unit area
           qflx_condensate_from_ac_lu(l) = wtlunit_roof(l) * qtot_condensate(l) / dtime
 
-          ! Cathy [dev.06]
           ! Calculate relative humidity based on specific humidity
           call QSat(t_building(l), forc_pbot(g),  esat_building, esatdT_building,qsat_building, qsatdT_building )
           rh_building(l) = min(100._r8, q_building(l) / qsat_building * 100._r8)
@@ -1043,19 +1039,14 @@ contains
           ! Difference in dehumidification energy flux:
           err_eflx_urban_ac_lat(l) = eflx_urban_ac_lat_derived(l) - (eflx_urban_ac(l) - eflx_urban_ac_sen(l))
           if (abs(err_eflx_urban_ac_lat(l)) > 1.e-5_r8 ) then
-             write (iulog,*) "eflx_urban_ac_lat_derived(l) =", eflx_urban_ac_lat_derived(l)   ! REMOVE
-             write (iulog,*) "(eflx_urban_ac(l) - eflx_urban_ac_sen(l)) =", (eflx_urban_ac(l) - eflx_urban_ac_sen(l)) ! REMOVE
-             write (iulog,*) "eflx_urban_ac(l) =", eflx_urban_ac(l) ! REMOVE
-             write (iulog,*) "eflx_urban_ac_sen(l) =", eflx_urban_ac_sen(l) ! REMOVE
              write (iulog,*) 'urban dehumidification energy does not match condensate output,' 
              write (iulog,*) 'error in dehumidification energy flux [W/m2 urban]: ',err_eflx_urban_ac_lat(l)
-             write (iulog,*) 'clm model is stopping'
+             write (iulog,*) 'elm model is stopping'
              call endrun()
           end if
        end if
     end do
 
-    ! Cathy [dev.18.03] Start a seperate loop for this:
     ! Assume all condensed water gets added to the roof column (that goes directly into surface runoff)
     ! Calculate and assign water flux due to dehumidification to roof column [mm/s],
     ! water flux to other urban columns are set to 0.
