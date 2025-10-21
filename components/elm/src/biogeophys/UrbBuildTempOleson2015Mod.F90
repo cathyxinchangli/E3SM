@@ -54,10 +54,10 @@ contains
 ! qrd_sunw + qcd_sunw + qcv_sunw = 0
 ! qrd_shdw + qcd_shdw + qcv_shdw = 0
 ! qrd_floor + qcd_floor + qcv_floor = 0
-! Vbld*rho_dair*cpair*(dt_building/dt) = sum(Asfc*hcv_sfc*(t_sfc - t_building) 
-!                                        + Vvent*rho_dair*cpair*(taf - t_building)
+! Vbld*rho_hair*cpair*(dt_building/dt) = sum(Asfc*hcv_sfc*(t_sfc - t_building) 
+!                                        + Vvent*rho_hair*cpair*(taf - t_building)
 !   where Vlbd is volume of building air,
-!         rho_dair is density of dry air at t_building (kg m-3),
+!         rho_hair is density of humid air at t_building (kg m-3),
 !         cpair is specific heat of dry air (J kg-1 K-1),
 !         dt_building is change in interior building temperature (K),
 !         dt is timestep (s),
@@ -255,7 +255,7 @@ contains
     real(r8) :: dz_floori(bounds%begl:bounds%endl)         ! concrete floor thickness (m)
     real(r8) :: cp_floori(bounds%begl:bounds%endl)         ! concrete floor volumetric heat capacity (J m-3 K-1)
     real(r8) :: cv_floori(bounds%begl:bounds%endl)         ! intermediate calculation for concrete floor (W m-2 K-1)
-    real(r8) :: rho_dair(bounds%begl:bounds%endl)          ! density of dry air at standard pressure and t_building (kg m-3)
+    real(r8) :: rho_hair(bounds%begl:bounds%endl)          ! density of humid air at standard pressure and t_building (kg m-3)
     real(r8) :: cp_hair(bounds%begl:bounds%endl)           ! specific heat capacity of indoor humid air (J kg-1 K-1)
     real(r8) :: vf_rf(bounds%begl:bounds%endl)             ! view factor of roof for floor (-)
     real(r8) :: vf_fr(bounds%begl:bounds%endl)             ! view factor of floor for roof (-)
@@ -406,7 +406,7 @@ contains
          ! Partial pressure of water vapor (Pa)
          p_vapor = min(1._r8, q_building_bef(l) / qsat_building ) * esat_building
          ! Density of HUMID air at bottom layer atmos. forcing pressure and t_building (kg m-3)
-         rho_dair(l) = ( forc_pbot(g) - p_vapor ) / ( rair * t_building_bef(l) ) + p_vapor / ( rwat * t_building_bef(l))
+         rho_hair(l) = ( forc_pbot(g) - p_vapor ) / ( rair * t_building_bef(l) ) + p_vapor / ( rwat * t_building_bef(l))
          ! Specific heat capacity of HUMID air (J/kg/K)
          cp_hair(l) = cpair + cpwvap * q_building_bef(l)
          ! Building height to building width ratio
@@ -672,15 +672,15 @@ contains
 
          a(5,4) = - 0.5_r8*hcv_floori(l)
 
-         a(5,5) =  ((ht_roof(l)*rho_dair(l)*cp_hair(l))/dtime) + &
-                   ((ht_roof(l)*vent_ach)/3600._r8)*rho_dair(l)*cp_hair(l) + &
+         a(5,5) =  ((ht_roof(l)*rho_hair(l)*cp_hair(l))/dtime) + &
+                   ((ht_roof(l)*vent_ach)/3600._r8)*rho_hair(l)*cp_hair(l) + &
                    0.5_r8*hcv_roofi(l) + &
                    0.5_r8*hcv_sunwi(l)*building_hwr(l) + &
                    0.5_r8*hcv_shdwi(l)*building_hwr(l) + &
                    0.5_r8*hcv_floori(l)
 
-         result(5) = (ht_roof(l)*rho_dair(l)*cp_hair(l)/dtime)*t_building_bef(l) &
-                      + ((ht_roof(l)*vent_ach)/3600._r8)*rho_dair(l)*cp_hair(l)*taf(l) &
+         result(5) = (ht_roof(l)*rho_hair(l)*cp_hair(l)/dtime)*t_building_bef(l) &
+                      + ((ht_roof(l)*vent_ach)/3600._r8)*rho_hair(l)*cp_hair(l)*taf(l) &
                       + 0.5_r8*hcv_roofi(l)*(t_roof_inner_bef(l) - t_building_bef(l)) &
                       + 0.5_r8*hcv_sunwi(l)*(t_sunw_inner_bef(l) - t_building_bef(l))*building_hwr(l) &
                       + 0.5_r8*hcv_shdwi(l)*(t_shdw_inner_bef(l) - t_building_bef(l))*building_hwr(l) &
@@ -918,8 +918,8 @@ contains
            call endrun()
          end if
 
-         enrgy_bal_buildair(l) = (ht_roof(l)*rho_dair(l)*cp_hair(l)/dtime)*(t_building(l) - t_building_bef(l)) &
-                                 - ht_roof(l)*(vent_ach/3600._r8)*rho_dair(l)*cp_hair(l)*(taf(l) - t_building(l)) &
+         enrgy_bal_buildair(l) = (ht_roof(l)*rho_hair(l)*cp_hair(l)/dtime)*(t_building(l) - t_building_bef(l)) &
+                                 - ht_roof(l)*(vent_ach/3600._r8)*rho_hair(l)*cp_hair(l)*(taf(l) - t_building(l)) &
                                  - 0.5_r8*hcv_roofi(l)*(t_roof_inner(l) - t_building(l)) &
                                  - 0.5_r8*hcv_roofi(l)*(t_roof_inner_bef(l) - t_building_bef(l)) &
                                  - 0.5_r8*hcv_sunwi(l)*(t_sunw_inner(l) - t_building(l))*building_hwr(l) &
@@ -956,7 +956,7 @@ contains
        if (urbpoi(l)) then
           if (trim(urban_hac) == urban_hac_on .or. trim(urban_hac) == urban_wasteheat_on) then
             t_building_bef_hac(l) = t_building(l)
-!           rho_dair(l) = pstd / (rair*t_building(l))
+!           rho_hair(l) = pstd / (rair*t_building(l))
             q_building_bef_hac(l) = q_building(l)
 
             ! Calculate q setpoint from RH setpoint
@@ -967,10 +967,10 @@ contains
               if (urban_explicit_ac) then   ! use explicit ac adoption rate parameterization scheme:
                 ! Sensible heat
                 ! Here, t_building_max is the AC saturation setpoint
-                eflx_urban_ac_sat(l) = wtlunit_roof(l) * abs( (ht_roof(l) * rho_dair(l) * cp_hair(l) / dtime) * t_building_max(l) &
-                                     - (ht_roof(l) * rho_dair(l) * cp_hair(l) / dtime) * t_building_bef_hac(l) )
+                eflx_urban_ac_sat(l) = wtlunit_roof(l) * abs( (ht_roof(l) * rho_hair(l) * cp_hair(l) / dtime) * t_building_max(l) &
+                                     - (ht_roof(l) * rho_hair(l) * cp_hair(l) / dtime) * t_building_bef_hac(l) )
                 t_building(l) = t_building_max(l) + ( 1._r8 - p_ac(l) ) * eflx_urban_ac_sat(l) &
-                              * dtime / (ht_roof(l) * rho_dair(l) * cp_hair(l) * wtlunit_roof(l))
+                              * dtime / (ht_roof(l) * rho_hair(l) * cp_hair(l) * wtlunit_roof(l))
                 eflx_urban_ac_sen(l) = p_ac(l) * eflx_urban_ac_sat(l)
 
                 ! Latent heat
@@ -979,27 +979,27 @@ contains
                   ! Humidification process for urban heating is not implemented.
                   ! Here, q_building_max is the AC humidity setpoint under saturated adoption
                   eflx_urban_ac_sat_lat(l) = wtlunit_roof(l) * abs( &
-                                             (ht_roof(l) * rho_dair(l) * hvap / dtime) * q_building_max &
-                                             - (ht_roof(l) * rho_dair(l) * hvap / dtime) * q_building_bef_hac(l) &
+                                             (ht_roof(l) * rho_hair(l) * hvap / dtime) * q_building_max &
+                                             - (ht_roof(l) * rho_hair(l) * hvap / dtime) * q_building_bef_hac(l) &
                                              )
                   eflx_urban_ac_sat(l) = eflx_urban_ac_sat(l) + eflx_urban_ac_sat_lat(l)
                   q_building(l) = q_building_max + ( 1._r8 - p_ac(l) ) * eflx_urban_ac_sat_lat(l) &
-                              * dtime / (ht_roof(l) * rho_dair(l) * hvap * wtlunit_roof(l))
+                              * dtime / (ht_roof(l) * rho_hair(l) * hvap * wtlunit_roof(l))
 
                 end if
 
                 eflx_urban_ac(l) = p_ac(l) * eflx_urban_ac_sat(l)
               else
                 t_building(l) = t_building_max(l)
-                eflx_urban_ac_sen(l) = wtlunit_roof(l) * abs( (ht_roof(l) * rho_dair(l) * cp_hair(l) / dtime) * t_building(l) &
-                                   - (ht_roof(l) * rho_dair(l) * cp_hair(l) / dtime) * t_building_bef_hac(l) )
+                eflx_urban_ac_sen(l) = wtlunit_roof(l) * abs( (ht_roof(l) * rho_hair(l) * cp_hair(l) / dtime) * t_building(l) &
+                                   - (ht_roof(l) * rho_hair(l) * cp_hair(l) / dtime) * t_building_bef_hac(l) )
                 eflx_urban_ac(l) = eflx_urban_ac_sen(l) + 0._r8 ! 0._r8 is a placeholder for eflx_urban_ac_lat(l)
               end if
             
             else if (t_building_bef_hac(l) < t_building_min(l)) then
               t_building(l) = t_building_min(l)
-              eflx_urban_heat(l) = wtlunit_roof(l) * abs( (ht_roof(l) * rho_dair(l) * cp_hair(l) / dtime) * t_building(l) &
-                                   - (ht_roof(l) * rho_dair(l) * cp_hair(l) / dtime) * t_building_bef_hac(l) )
+              eflx_urban_heat(l) = wtlunit_roof(l) * abs( (ht_roof(l) * rho_hair(l) * cp_hair(l) / dtime) * t_building(l) &
+                                   - (ht_roof(l) * rho_hair(l) * cp_hair(l) / dtime) * t_building_bef_hac(l) )
             else
               eflx_urban_ac_sen(l) = 0._r8
               eflx_urban_ac(l) = 0._r8
@@ -1013,12 +1013,12 @@ contains
   
 
           eflx_building(l) = wtlunit_roof(l) * ( &
-                             (ht_roof(l) * rho_dair(l)*cp_hair(l)/dtime) * (t_building(l) - t_building_bef(l)) &
-                             + (ht_roof(l) * rho_dair(l)*hvap/dtime) * (q_building(l) - q_building_bef(l)) &
+                             (ht_roof(l) * rho_hair(l)*cp_hair(l)/dtime) * (t_building(l) - t_building_bef(l)) &
+                             + (ht_roof(l) * rho_hair(l)*hvap/dtime) * (q_building(l) - q_building_bef(l)) &
                              )
 
           ! Calculate total water condensed by dehumidification, if any [kg/m2 building area].
-          qtot_condensate(l) = max(0._r8, (-q_building(l)+q_building_bef_hac(l))) * ht_roof(l) * rho_dair(l)
+          qtot_condensate(l) = max(0._r8, (-q_building(l)+q_building_bef_hac(l))) * ht_roof(l) * rho_hair(l)
           ! condensate water flux [mm/s] w.r.t. urban land unit area
           qflx_condensate_from_ac_lu(l) = wtlunit_roof(l) * qtot_condensate(l) / dtime
 
