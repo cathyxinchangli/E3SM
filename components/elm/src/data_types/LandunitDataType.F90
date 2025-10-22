@@ -352,7 +352,7 @@ contains
       this%eflx_urban_ac_sen(begl:endl) = spval
       call hist_addfld1d (fname='URBAN_AC_SEN', units='W/m^2',  &
             avgflag='A', long_name='sensible heat component of urban air conditioning flux', &
-            ptr_lunit=this%eflx_urban_ac_sen, set_nourb=0._r8, l2g_scale_type='unity')
+            ptr_lunit=this%eflx_urban_ac_sen, set_nourb=0._r8, l2g_scale_type='unity',default='inactive')
 
       this%eflx_urban_heat(begl:endl) = spval
       call hist_addfld1d (fname='URBAN_HEAT', units='W/m^2',  &
