@@ -507,7 +507,7 @@ contains
             units='kg/kg',  &
             avgflag='A', &
             long_name='urban canopy specific humidity', &
-            ptr_lunit=this%qaf, l2g_scale_type='unity', set_nourb=spval)        
+            ptr_lunit=this%qaf, l2g_scale_type='unity', set_nourb=spval, default='inactive')        
 
 
        this%q_building(begl:endl) = spval     ! it was already initialized with spval above, so may not be neccesary
