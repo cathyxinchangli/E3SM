@@ -501,6 +501,15 @@ contains
     ! initialize history fields for select members of lun_ws
     !-----------------------------------------------------------------------
     if ( is_prog_buildtemp ) then
+       this%qaf(begl:endl) = spval     ! it was already initialized with spval above, so may not be neccesary
+       call hist_addfld1d ( &
+            fname='QAF_U', &
+            units='kg/kg',  &
+            avgflag='A', &
+            long_name='urban canopy specific humidity', &
+            ptr_lunit=this%qaf, l2g_scale_type='unity', set_nourb=spval)        
+
+
        this%q_building(begl:endl) = spval     ! it was already initialized with spval above, so may not be neccesary
        call hist_addfld1d ( &
             fname='QBUILD', &
@@ -626,8 +635,8 @@ contains
     !-----------------------------------------------------------------------
     ! initialize history fields for select members of lun_wf
     !-----------------------------------------------------------------------
-    if (is_prog_buildtemp) then     ! REMOVE COMMENT added not in cathy code
-      this%qflx_condensate_from_ac(begl:endl) = 0.0_r8   ! REMOVE COMMENT. it was already initialized to 0, so can we remove this
+    if (is_prog_buildtemp) then     
+      this%qflx_condensate_from_ac(begl:endl) = 0.0_r8   
       call hist_addfld1d ( &
             fname='QCOND_FROM_AC_LUN', &
             units='mm/s',  &
