@@ -454,7 +454,7 @@ contains
     call lun_ef%Init(bounds_proc%begl_all, bounds_proc%endl_all, &
          IsSimpleBuildTemp(), IsProgBuildTemp() )
     call col_ef%Init(bounds_proc%begc_all, bounds_proc%endc_all, IsSimpleBuildTemp())
-    call veg_ef%Init(bounds_proc%begp_all, bounds_proc%endp_all, IsSimpleBuildTemp())
+    call veg_ef%Init(bounds_proc%begp_all, bounds_proc%endp_all, IsSimpleBuildTemp(), IsProgBuildTemp())
 
     call drydepvel_vars%Init(bounds_proc)
     call aerosol_vars%Init(bounds_proc)

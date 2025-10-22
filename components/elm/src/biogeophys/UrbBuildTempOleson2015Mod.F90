@@ -354,6 +354,7 @@ contains
     eflx_urban_ac     => lun_ef%eflx_urban_ac , & ! Output:  [real(r8) (:)]  urban air conditioning flux (W/m**2)
     eflx_urban_ac_sen => lun_ef%eflx_urban_ac_sen,& ! Output: [real(r8) (:)] sensible heat component of urban air conditioning flux (W/m**2)
     eflx_urban_heat   => lun_ef%eflx_urban_heat, & ! Output:  [real(r8) (:)]  urban heating flux (W/m**2)
+    eflx_ventilation  => lun_ef%eflx_ventilation, & ! Output: [real(r8) (:)]  sensible heat flux from 
     qflx_condensate_from_ac => col_wf%qflx_condensate_from_ac, & ! Output: [real(r8) (:)] condensed water flux due to dehumidification for impervious road area (mm/s)
     qflx_condensate_from_ac_lu => lun_wf%qflx_condensate_from_ac & ! Output: [real(r8) (:)] condensed water flux due to dehumidification for urban area by land unit (mm/s)
     )
@@ -934,7 +935,16 @@ contains
            call endrun()
          end if
 
-         ! eflx_ventilation(l) = ...  SHOULD BE HERE
+         
+         ! Sensible heat flux from ventilation. It is added as a flux to the canyon floor in SoilTemperatureMod.
+         ! Note that we multiply it here by wtlunit_roof which converts it from W/m2 of building area to W/m2
+         ! of urban area. eflx_urban_ac and eflx_urban_heat are treated similarly below. This flux is balanced
+         ! by an equal and opposite flux into/out of the building and so has a net effect of zero on the energy balance
+         ! of the urban landunit.
+         eflx_ventilation(l) = wtlunit_roof(l) * ( &
+                               - ht_roof(l) * (vent_ach/3600._r8) * rho_hair(l) * cp_hair(l) * (taf(l) - t_building(l)) &
+                               - ht_roof(l) * (vent_ach/3600._r8) * rho_hair(l) * hvap * (qaf(l) - q_building(l)) &
+                               )
        end if
     end do
 

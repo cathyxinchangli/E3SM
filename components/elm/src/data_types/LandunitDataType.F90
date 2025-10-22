@@ -51,6 +51,7 @@ module LandunitDataType
     ! temperature variables
     real(r8), pointer :: eflx_traffic      (:)   ! traffic sensible heat flux (W/m**2)
     real(r8), pointer :: eflx_wasteheat    (:)   ! sensible heat flux from domestic heating/cooling sources of waste heat (W/m**2)
+    real(r8), pointer :: eflx_ventilation  (:)   ! lun sensible heat flux from building ventilation (W/m**2)  
     real(r8), pointer :: eflx_urban_ac     (:)   ! urban air conditioning flux (W/m**2) 
     real(r8), pointer :: eflx_urban_ac_sen (:)   ! sensible heat component of air conditioning flux (W/m**2)
     real(r8), pointer :: eflx_heat_from_ac (:)   ! sensible heat flux to be put back into canyon due to removal by AC (W/m**2)
@@ -330,6 +331,7 @@ contains
     allocate( this%eflx_heat_from_ac   (begl:endl))             ; this%eflx_heat_from_ac   (:)   = spval
     allocate( this%eflx_traffic        (begl:endl))             ; this%eflx_traffic        (:)   = spval
     allocate( this%eflx_wasteheat      (begl:endl))             ; this%eflx_wasteheat      (:)   = spval
+    allocate( this%eflx_ventilation    (begl:endl))             ; this%eflx_ventilation    (:)   = spval
     allocate( this%eflx_urban_ac       (begl:endl))             ; this%eflx_urban_ac       (:)   = spval
     allocate( this%eflx_urban_ac_sen   (begl:endl))             ; this%eflx_urban_ac_sen   (:)   = spval
     allocate( this%eflx_urban_heat     (begl:endl))             ; this%eflx_urban_heat     (:)   = spval
@@ -369,6 +371,7 @@ contains
        if (.not. lun_pp%urbpoi(l)) then
           this%eflx_traffic(l)   = spval
           this%eflx_wasteheat(l) = spval
+          this%eflx_ventilation(l) = spval
           if ( is_prog_buildtemp )then
              this%eflx_building(l)   = 0._r8
              this%eflx_urban_ac(l)   = 0._r8
@@ -381,6 +384,7 @@ contains
              this%eflx_urban_ac(l)   = 0._r8
              this%eflx_urban_ac_sen(l)= 0._r8
              this%eflx_urban_heat(l) = 0._r8
+             this%eflx_ventilation(l)= 0._r8
           end if
 
        end if
@@ -398,6 +402,8 @@ contains
      ! !USES:
      use decompMod      , only : get_proc_global
      use ncdio_pio      , only : file_desc_t, ncd_double, ncd_inqvdlen 
+     use spmdMod       , only : masterproc
+     use elm_varctl    , only : iulog
      !
      ! !ARGUMENTS:
      class(landunit_energy_flux) :: this
@@ -458,6 +464,16 @@ contains
        else
           this%eflx_urban_heat = 0.0_r8
        end if
+
+       call restartvar(ncid=ncid, flag=flag, varname='EFLX_VENTILATION', xtype=ncd_double, &
+           dim1name='landunit', &
+           long_name='sensible heat flux from building ventilation', units='watt/m^2', &
+           interpinic_flag='interp', readvar=readvar, data=this%eflx_ventilation)
+       if (flag=='read' .and. .not. readvar) then
+          if (masterproc) write(iulog,*) "can't find EFLX_VENTILATION in initial file..."
+          if (masterproc) write(iulog,*) "Initialize EFLX_VENTILATION to zero"
+          this%eflx_ventilation(bounds%begl:bounds%endl) = 0._r8
+       end if 
     end if
 
   end subroutine lun_ef_restart

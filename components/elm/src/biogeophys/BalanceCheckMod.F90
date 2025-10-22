@@ -261,6 +261,7 @@ contains
           eflx_lh_tot                =>    veg_ef%eflx_lh_tot          , & ! Input:  [real(r8) (:)   ]  total latent heat flux (W/m8*2)  [+ to atm]
           eflx_soil_grnd             =>    veg_ef%eflx_soil_grnd       , & ! Input:  [real(r8) (:)   ]  soil heat flux (W/m**2) [+ = into soil]
           eflx_wasteheat_patch       =>    veg_ef%eflx_wasteheat       , & ! Input:  [real(r8) (:)   ]  sensible heat flux from urban heating/cooling sources of waste heat (W/m**2)
+          eflx_ventilation_patch     =>    veg_ef%eflx_ventilation      ,& ! Input:  [real(r8) (:)   ]  sensible heat flux from building ventilation (W/m**2)
           eflx_heat_from_ac_patch    =>    veg_ef%eflx_heat_from_ac    , & ! Input:  [real(r8) (:)   ]  sensible heat flux put back into canyon due to removal by AC (W/m**2)
           eflx_traffic_patch         =>    veg_ef%eflx_traffic         , & ! Input:  [real(r8) (:)   ]  traffic sensible heat flux (W/m**2)
           eflx_dynbal                =>    grc_ef%eflx_dynbal          , & ! Input:  [real(r8) (:)   ]  energy conversion flux due to dynamic land cover change(W/m**2) [+ to atm]
@@ -634,7 +635,8 @@ contains
                 errseb(p) = sabv(p) + sabg(p) &
                      - eflx_lwrad_net(p) &
                      - eflx_sh_tot(p) - eflx_lh_tot(p) - eflx_soil_grnd(p) &
-                     + eflx_wasteheat_patch(p) + eflx_heat_from_ac_patch(p) + eflx_traffic_patch(p)
+                     + eflx_wasteheat_patch(p) + eflx_heat_from_ac_patch(p) + eflx_traffic_patch(p) &
+                     + eflx_ventilation_patch(p)
              end if
              !TODO MV - move this calculation to a better place - does not belong in BalanceCheck
              netrad(p) = fsa(p) - eflx_lwrad_net(p)

@@ -325,6 +325,7 @@ module VegetationDataType
     real(r8), pointer :: eflx_anthro       (:) => null() ! total anthropogenic heat flux (W/m**2)
     real(r8), pointer :: eflx_traffic      (:) => null() ! traffic sensible heat flux (W/m2)
     real(r8), pointer :: eflx_wasteheat    (:) => null() ! sensible heat flux from domestic heating/cooling sources of waste heat (W/m**2)
+    real(r8), pointer :: eflx_ventilation  (:) => null() ! sensible heat flux from domestic heating/cooling sources of waste heat (W/m**2)
     real(r8), pointer :: eflx_heat_from_ac (:) => null() ! sensible heat flux put back into canyon due to removal by AC (W/m**2)
     real(r8), pointer :: dlrad             (:) => null() ! downward longwave radiation below the canopy [W/m2]
     real(r8), pointer :: ulrad             (:) => null() ! upward longwave radiation above the canopy [W/m2]
@@ -5069,12 +5070,13 @@ module VegetationDataType
   !------------------------------------------------------------------------
   ! Subroutines to initialize and clean vegetation energy flux data structure
   !------------------------------------------------------------------------
-  subroutine veg_ef_init(this, begp, endp, is_simple_buildtemp)
+  subroutine veg_ef_init(this, begp, endp, is_simple_buildtemp, is_prog_buildtemp)
     !
     ! !ARGUMENTS:
     class(vegetation_energy_flux) :: this
     integer, intent(in) :: begp,endp
     logical, intent(in) :: is_simple_buildtemp
+    logical, intent(in) :: is_prog_buildtemp   ! If using prognostic building temp method
     !
     ! !LOCAL VARIABLES:
     integer  :: l,c,p
@@ -5111,6 +5113,7 @@ module VegetationDataType
     allocate(this%eflx_anthro         (begp:endp))   ; this%eflx_anthro        (:)   = spval
     allocate(this%eflx_traffic        (begp:endp))   ; this%eflx_traffic       (:)   = spval
     allocate(this%eflx_wasteheat      (begp:endp))   ; this%eflx_wasteheat     (:)   = spval
+    allocate(this%eflx_ventilation    (begp:endp))   ; this%eflx_ventilation   (:)   = spval
     allocate(this%eflx_heat_from_ac   (begp:endp))   ; this%eflx_heat_from_ac  (:)   = spval
     allocate(this%dlrad               (begp:endp))   ; this%dlrad              (:)   = spval
     allocate(this%ulrad               (begp:endp))   ; this%ulrad              (:)   = spval
@@ -5317,6 +5320,13 @@ module VegetationDataType
          avgflag='A', long_name='sensible heat flux from heating/cooling sources of urban waste heat', &
          ptr_patch=this%eflx_wasteheat, set_nourb=0._r8, c2l_scale_type='urbanf')
 
+    if ( is_prog_buildtemp )then
+       this%eflx_ventilation(begp:endp) = spval
+       call hist_addfld1d (fname='VENTILATION', units='W/m^2',  &
+            avgflag='A', long_name='sensible heat flux from building ventilation', &
+            ptr_patch=this%eflx_ventilation, set_nourb=0._r8, c2l_scale_type='urbanf')
+    end if
+
     this%eflx_heat_from_ac(begp:endp) = spval
     call hist_addfld1d (fname='HEAT_FROM_AC', units='W/m^2',  &
          avgflag='A', long_name='sensible heat flux put into canyon due to heat removed from air conditioning', &
@@ -5364,6 +5374,7 @@ module VegetationDataType
            this%eflx_sh_tot_u(p)     = spval
            this%eflx_soil_grnd_u(p)  = spval
            this%eflx_wasteheat(p)    = 0._r8
+           this%eflx_ventilation(p)  = 0._r8
            this%eflx_heat_from_ac(p) = 0._r8
            this%eflx_traffic(p)      = 0._r8
            if ( is_simple_buildtemp )then

@@ -1814,6 +1814,7 @@ contains
          dlrad                   => veg_ef%dlrad             , & ! Input:  [real(r8) (:)   ]  downward longwave radiation blow the canopy [W/m2]
          eflx_traffic            => lun_ef%eflx_traffic        , & ! Input:  [real(r8) (:)   ]  traffic sensible heat flux (W/m**2)
          eflx_wasteheat          => lun_ef%eflx_wasteheat      , & ! Input:  [real(r8) (:)   ]  sensible heat flux from urban heating/cooling sources of waste heat (W/m**2)
+         eflx_ventilation        => lun_ef%eflx_ventilation    , & ! Input:  [real(r8) (:)   ]  sensible heat flux from building ventilation (W/m**2)
          eflx_heat_from_ac       => lun_ef%eflx_heat_from_ac   , & ! Input:  [real(r8) (:)   ]  sensible heat flux put back into canyon due to removal by AC (W/m**2)
          eflx_sh_snow            => veg_ef%eflx_sh_snow      , & ! Input:  [real(r8) (:)   ]  sensible heat flux from snow (W/m**2) [+ to atm]
          eflx_sh_soil            => veg_ef%eflx_sh_soil      , & ! Input:  [real(r8) (:)   ]  sensible heat flux from soil (W/m**2) [+ to atm]
@@ -1821,6 +1822,7 @@ contains
          eflx_sh_grnd            => veg_ef%eflx_sh_grnd      , & ! Input:  [real(r8) (:)   ]  sensible heat flux from ground (W/m**2) [+ to atm]
          eflx_lwrad_net          => veg_ef%eflx_lwrad_net    , & ! Input:  [real(r8) (:)   ]  net infrared (longwave) rad (W/m**2) [+ = to atm]
          eflx_wasteheat_patch    => veg_ef%eflx_wasteheat    , & ! Input:  [real(r8) (:)   ]  sensible heat flux from urban heating/cooling sources of waste heat (W/m**2)
+         eflx_ventilation_patch  => veg_ef%eflx_ventilation  , & ! Input:  [real(r8) (:)   ]  sensible heat flux from building ventilation (W/m**2)
          eflx_heat_from_ac_patch => veg_ef%eflx_heat_from_ac , & ! Input:  [real(r8) (:)   ]  sensible heat flux put back into canyon due to removal by AC (W/m**2)
          eflx_traffic_patch      => veg_ef%eflx_traffic      , & ! Input:  [real(r8) (:)   ]  traffic sensible heat flux (W/m**2)
          eflx_anthro             => veg_ef%eflx_anthro       , & ! Input:  [real(r8) (:)   ]  total anthropogenic heat flux (W/m**2)
@@ -1890,11 +1892,19 @@ contains
 
                      ! All wasteheat and traffic flux goes into canyon floor
                      if (col_pp%itype(c) == icol_road_perv .or. col_pp%itype(c) == icol_road_imperv) then
+                        ! Note that we divide the following landunit variables by 1-wtlunit_roof which 
+                        ! essentially converts the flux from W/m2 of urban area to W/m2 of canyon floor area
                         eflx_wasteheat_patch(p) = eflx_wasteheat(l)/(1._r8-lun_pp%wtlunit_roof(l))
+                        if ( IsSimpleBuildTemp() ) then
+                           eflx_ventilation_patch(p) = 0._r8
+                        else if ( IsProgBuildTemp() ) then
+                           eflx_ventilation_patch(p) = eflx_ventilation(l)/(1._r8-lun_pp%wtlunit_roof(l))
+                        end if
                         eflx_heat_from_ac_patch(p) = eflx_heat_from_ac(l)/(1._r8-lun_pp%wtlunit_roof(l))
                         eflx_traffic_patch(p) = eflx_traffic(l)/(1._r8-lun_pp%wtlunit_roof(l))
                      else
                         eflx_wasteheat_patch(p) = 0._r8
+                        eflx_ventilation_patch(p) = 0._r8
                         eflx_heat_from_ac_patch(p) = 0._r8
                         eflx_traffic_patch(p) = 0._r8
                      end if
@@ -1903,7 +1913,8 @@ contains
                      eflx_gnet(p) = sabg(p) + dlrad(p)  &
                           - eflx_lwrad_net(p) &
                           - (eflx_sh_grnd(p) + qflx_evap_soi(p)*htvp(c) + qflx_tran_veg(p)*hvap) &
-                          + eflx_wasteheat_patch(p) + eflx_heat_from_ac_patch(p) + eflx_traffic_patch(p)
+                          + eflx_wasteheat_patch(p) + eflx_heat_from_ac_patch(p) + eflx_traffic_patch(p) &
+                          + eflx_ventilation_patch(p)
                      if ( IsSimpleBuildTemp() ) then
                           eflx_anthro(p)   = eflx_wasteheat_patch(p) + eflx_traffic_patch(p)
                      end if
