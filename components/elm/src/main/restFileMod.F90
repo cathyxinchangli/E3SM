@@ -199,7 +199,7 @@ contains
     
     call grc_wf%Restart (bounds, ncid, flag='define')
 
-    call lun_wf%Restart (bounds, ncid, flag='define',is_prog_buildtemp = IsProgBuildTemp())
+    ! call lun_wf%Restart (bounds, ncid, flag='define',is_prog_buildtemp = IsProgBuildTemp())  ! not necessary yet
 
     call col_wf%Restart (bounds, ncid, flag='define')
     
@@ -208,6 +208,9 @@ contains
     call top_es%Restart (bounds, ncid, flag='define')
     
     call lun_es%Restart (bounds, ncid, flag='define', &
+                      is_simple_buildtemp = IsSimpleBuildTemp(),is_prog_buildtemp = IsProgBuildTemp())
+
+    call lun_ef%Restart (bounds, ncid, flag='define', &
                       is_simple_buildtemp = IsSimpleBuildTemp(),is_prog_buildtemp = IsProgBuildTemp())
 
     call col_es%Restart (bounds, ncid, flag='define')
@@ -346,6 +349,9 @@ contains
     call top_es%Restart (bounds, ncid, flag='write')
 
     call lun_es%Restart (bounds, ncid, flag='write', &
+                      is_simple_buildtemp = IsSimpleBuildTemp(),is_prog_buildtemp = IsProgBuildTemp())
+
+    call lun_ef%Restart (bounds, ncid, flag='write', &
                       is_simple_buildtemp = IsSimpleBuildTemp(),is_prog_buildtemp = IsProgBuildTemp())
 
     call col_es%Restart (bounds, ncid, flag='write')
