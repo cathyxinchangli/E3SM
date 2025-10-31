@@ -403,7 +403,7 @@ contains
          ! Intermediate calculation for concrete floor (W m-2 K-1)
          cv_floori(l) = (dz_floori(l) * cp_floori(l)) / dtime
          ! Saturated vapor pressure at t_building (Pa)
-         call QSat(t_building_bef_hac(l), forc_pbot(g), esat_building, esatdT_building,qsat_building, qsatdT_building )
+         call QSat(t_building_bef(l), forc_pbot(g), esat_building, esatdT_building,qsat_building, qsatdT_building )
          ! Partial pressure of water vapor (Pa)
          p_vapor = min(1._r8, q_building_bef(l) / qsat_building ) * esat_building
          ! Density of HUMID air at bottom layer atmos. forcing pressure and t_building (kg m-3)
@@ -708,6 +708,14 @@ contains
        end if
     end do
 
+    ! Update internal building air specific humidity
+    do fl = 1,num_urbanl
+       l = filter_urbanl(fl)
+       if (urbpoi(l)) then
+          q_building(l) = qaf(l) * (vent_ach/3600._r8 * dtime) + q_building_bef(l) * (1 - vent_ach/3600._r8 * dtime)
+       end if
+    end do
+
     ! Energy balance checks
     do fl = 1,num_urbanl
        l = filter_urbanl(fl)
@@ -948,14 +956,6 @@ contains
        end if
     end do
 
-    ! Update internal building air specific humidity
-    do fl = 1,num_urbanl
-       l = filter_urbanl(fl)
-       if (urbpoi(l)) then
-          q_building(l) = qaf(l) * (vent_ach/3600._r8 * dtime) + q_building_bef(l) * (1 - vent_ach/3600._r8 * dtime)
-       end if
-    end do
-
     ! Restrict internal building air temperature to between min and max
     ! Calculate heating or air conditioning flux from energy required to change
     ! internal building air temperature to t_building_min or t_building_max. 
@@ -966,7 +966,6 @@ contains
        if (urbpoi(l)) then
           if (trim(urban_hac) == urban_hac_on .or. trim(urban_hac) == urban_wasteheat_on) then
             t_building_bef_hac(l) = t_building(l)
-!           rho_hair(l) = pstd / (rair*t_building(l))
             q_building_bef_hac(l) = q_building(l)
 
             ! Calculate q setpoint from RH setpoint
