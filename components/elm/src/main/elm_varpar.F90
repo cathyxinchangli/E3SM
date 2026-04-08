@@ -128,15 +128,13 @@ contains
   
   !------------------------------------------------------------------------------
   
-  subroutine elm_varpar_init(actual_nlevurb)
+  subroutine elm_varpar_init()
     !
     ! !DESCRIPTION:
     ! Initialize module variables 
     !
     ! !ARGUMENTS:
     implicit none
-    integer, intent(in) :: actual_nlevurb          ! nlevurb from surface dataset
-
     !
     ! !LOCAL VARIABLES:
     !
@@ -193,7 +191,7 @@ contains
     mach_eps       = epsilon(1.0_r8)
 
     nlevsoifl   =  10
-    nlevurb     =  actual_nlevurb
+    nlevurb     =  5
     if ( .not. more_vertlayers )then
        nlevsoi     =  nlevsoifl
        nlevgrnd    =  15
