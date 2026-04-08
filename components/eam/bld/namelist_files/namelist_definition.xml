@@ -7983,12 +7983,6 @@ TRUE if want urban traffic flux
 <default>Default: FALSE</default>
 </entry>
 
-<entry id="building_temp_method" type="integer" category="clm"
-       group="clm_inparm" valid_values="0,1" >
-0 = simpler method (clm4_5)
-1 = prognostic calculation of interior building temp (clm5_0)
-</entry>
-
 <entry id="wrtdia" type="logical" category="clm"
        group="clm_inparm" valid_values="" >
 true if want output written

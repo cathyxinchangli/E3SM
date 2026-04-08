@@ -4403,7 +4403,6 @@ if ($lnd_pkg eq 'clm' and $cam_build and $lnd_active) {
 
     add_default($nl, 'urban_hac');
     add_default($nl, 'urban_traffic');
-    add_default($nl, 'building_temp_method');
 
     add_default($nl, 'fsurdat', 'sim_year'=>$sim_year_start);
 

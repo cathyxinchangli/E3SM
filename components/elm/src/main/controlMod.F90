@@ -391,7 +391,8 @@ contains
        if (ierr == 0) then
           read(unitn, elm_inparm, iostat=ierr)
           if (ierr /= 0) then
-             call endrun(msg='ERROR reading elm_inparm namelist'//errMsg(__FILE__, __LINE__))
+            !  call endrun(msg='ERROR reading elm_inparm namelist'//errMsg(__FILE__, __LINE__))
+            call endrun(msg='ERROR reading elm_inparm namelist '//trim(NLFilename)//errMsg(__FILE__, __LINE__))   ! REMOVE
           end if
        end if
 
